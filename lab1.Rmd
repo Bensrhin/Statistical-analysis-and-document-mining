@@ -1,5 +1,5 @@
 ---
-title: "SADM_TP1"
+title: "SADM_Lab1"
 output: html_document
 ---
 
@@ -7,6 +7,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Question 1:
 
 ```{r}
 set.seed(0)
@@ -15,4 +16,34 @@ vect = rnorm(n*m)
 m = matrix(vect,nrow = n, ncol = m)
 d = as.data.frame(m)
 ```
+
+
+Question 2:
+
+Multiple linear regression model:
+Using the 200 predictors,
+$$
+\forall i \in [1,6000] \space x_{0 i} = \sum_{j=1}^{200}\beta_{j} x_{ji} + \beta_0 + \epsilon_i
+$$
+
+True regression model: (??)
+$$
+ \space x_{0} = \sum_{x=1}^{1206000} \beta_{i} x_{i} + \beta_0 + \epsilon_0
+$$
+
+Question 3 :
+
+```{r}
+reg<-lm(d$V1 ~ ., d)
+summary(reg)$coefficients
+```
+
+
+```{r}
+summary(reg)$coefficients[summary(reg)$coefficients[,4]<=0.05,] #??
+```
+
+
+
+
 

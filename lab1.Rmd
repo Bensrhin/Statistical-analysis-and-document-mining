@@ -1,0 +1,18 @@
+---
+title: "SADM_TP1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+set.seed(0)
+n = 6000; m = 201
+vect = rnorm(n*m)
+m = matrix(vect,nrow = n, ncol = m)
+d = as.data.frame(m)
+```
+

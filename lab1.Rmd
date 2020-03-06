@@ -26,7 +26,7 @@ $$
 \forall i \in [1,6000] \space x_{0 i} = \sum_{j=1}^{200}\beta_{j} x_{ji} + \beta_0 + \epsilon_i
 $$
 
-True regression model: (??)
+True regression model: (?? A VERIFIER)
 $$
  \space x_{0} = \sum_{x=1}^{1206000} \beta_{i} x_{i} + \beta_0 + \epsilon_0
 $$
@@ -40,8 +40,122 @@ summary(reg)$coefficients
 
 
 ```{r}
-summary(reg)$coefficients[summary(reg)$coefficients[,4]<=0.05,] #??
+summary(reg)$coefficients[summary(reg)$coefficients[,4]<=0.05,] #?? A VERIFIER
 ```
+
+
+
+Question 4:
+
+```{r}
+n = 1000
+eps1 = rnorm(n)
+eps2 = rnorm(n)
+eps3 = rnorm(n)
+x1 = eps1
+x2 = 3*x1 + eps2
+y = x1 + x2 + 2 + eps3
+plot(x1,x2)
+```
+
+$X_2$ and $X_1$ are clearly correlated. The plot resembles that of the function $y=3x$ with a fluctuation around it due to $\epsilon_2$.
+
+
+
+
+Question 5:
+
+```{r}
+reg1 <- lm(y~x1)
+summary(reg1)$coefficients
+beta1 = summary(reg1)$coefficients[2,1]; beta1
+beta0 = summary(reg1)$coefficients[1,1]; beta0
+sigmat1 = summary(reg1)$coefficients[1,2]; sigmat1 #?? (A VERIFIER)
+
+reg2 <- lm(y~x2)
+summary(reg2)$coefficients
+beta2 = summary(reg2)$coefficients[2,1]; beta2
+sigmat2 = summary(reg2)$coefficients[1,2]; sigmat2
+```
+
+The coefficients computed are quite close to the real values, except maybe for $\beta_2$, because of the presence of two random variables in the simulated values.
+
+
+```{r}
+set.seed(3)
+n = 10
+eps1 = rnorm(n)
+eps2 = rnorm(n)
+eps3 = rnorm(n)
+x1 = eps1
+x2 = 3*x1 + eps2
+y = x1 + x2 + 2 + eps3
+reg1 <- lm(y~x1)
+beta1 = summary(reg1)$coefficients[2,1]; beta1
+beta0 = summary(reg1)$coefficients[1,1]; beta0
+sigmat1 = summary(reg1)$coefficients[1,2]; sigmat1
+
+reg2 <- lm(y~x2)
+beta2 = summary(reg2)$coefficients[2,1]; beta2
+sigmat2 = summary(reg2)$coefficients[1,2]; sigmat2
+```
+
+By lowering the value of $n$, the computed values are less accurate, the variances $\tilde{\epsilon}_j$ are also bigger which indicates that the precision of the regression has decreased significantly.
+
+
+```{r}
+reg3 = lm(y~x1+x2)
+#summary(reg3)
+beta2 = summary(reg3)$coefficients[3,1]; beta2
+beta1 = summary(reg3)$coefficients[2,1]; beta1
+beta0 = summary(reg3)$coefficients[1,1]; beta0
+sigma = summary(reg3)$coefficients[1,2]; sigma
+```
+
+The values are once again accurate. Because ?? (TO FILL WITH SOME BS)
+
+
+
+
+
+
+
+
+PART 2 :
+
+
+1 - 
+```{r}
+prostateCancer<-read.table("./prostate.data",header=T); prostateCancer
+attach(prostateCancer)
+```
+
+```{r}
+pro <- prostateCancer[1:9]
+pairs(pro)
+```
+
+There is an apparently strong correlation between lcavol and : svi, lcp and lpsa.
+
+
+
+
+2 -
+
+a - 
+```{r}
+pro$gleason<-factor(pro$gleason)
+pro$svi<-factor(pro$svi)
+
+reg <- lm(pro$lcavol ~., pro)
+summary(reg)
+```
+
+
+
+
+
+
 
 
 

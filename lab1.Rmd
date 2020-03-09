@@ -126,7 +126,7 @@ PART 2 :
 
 1 - 
 ```{r}
-prostateCancer<-read.table("./prostate.data",header=T); prostateCancer
+prostateCancer<-read.table("./prostate.data",header=T);
 attach(prostateCancer)
 ```
 
@@ -142,7 +142,7 @@ There is an apparently strong correlation between lcavol and : svi, lcp and lpsa
 
 2 -
 
-a - 
+(a)
 ```{r}
 pro$gleason<-factor(pro$gleason)
 pro$svi<-factor(pro$svi)
@@ -150,6 +150,124 @@ pro$svi<-factor(pro$svi)
 reg <- lm(pro$lcavol ~., pro)
 summary(reg)
 ```
+
+
+-  We notice the presence of gleason7, 8 and 9 instead of gleason. Each one of these variables represents a level of the variable we made quantitative (using the command factor()). Basically, instead of performing a regression based on the 4 possible values of gleason, we seperate the variable gleason into 3 variables, each one representing a simple "YES" or "NO" if the variable is equal to the corresponding level (we don't need a fourth one, since its value can be deduced from the 3 others). 
+The same thing applies for the variable svi, with 2 levels, we find ourselves with one variable in the linear regression, with the same meaning as described before.
+
+
+-  There is a strong correlation between lcavol and : lcp and lpsa with a p-value inferior to $10^{-5}$, and a weak correlation between lcavol and pgg45 with a p-value inferior to $0.1$.
+
+
+
+
+(b) 
+```{r}
+confint(reg)
+```
+
+COMMENT MISSING
+
+
+
+(c)
+```{r}
+reg_lpsa <- lm(pro$lcavol ~lpsa)
+summary(reg_lpsa)$coefficients
+confint(reg_lpsa)
+```
+
+lpsa is a very strong predictor of lcavol.
+
+
+(d)
+
+```{r}
+plot(pro$lcavol, reg$fitted.values)
+```
+
+
+
+```{r}
+hist(reg$residuals, prob=TRUE)
+norm <- function(x){
+  return (dnorm(x, sd = sd(reg$residuals)))
+}
+par(new=TRUE)
+curve(norm(x), add=TRUE)
+```
+
+Yes, we can admit that the residuals are normally distributed.
+
+The residual sum of squares :
+```{r}
+sum(reg$residuals^2)
+```
+
+
+(e)
+dunno, looks good
+
+(f)
+```{r}
+reg_f = lm(pro$lcavol ~ pro$lweight + pro$age + pro$lbph + pro$svi + pro$gleason + pro$pgg45)
+summary(reg_f)
+```
+
+By plotting the fitted values against the real values :
+```{r}
+plot(pro$lcavol, reg_f$fitted.values)
+```
+
+By removing the best predictors, the model becomes quite inaccurate in comparison to the previous one, even if the p-value of svi1 is very low, that's because that variable is the best predictor between all the predictors available, and is not an indicator of the validity of the model in itself.
+
+
+
+3 -  
+
+```{r}
+aov_svi<-aov(pro$lcavol~pro$svi, pro); summary(aov_svi)
+aov_gleason<-aov(pro$lcavol~pro$gleason, pro); summary(aov_gleason)
+avo2 <-aov(pro$lcavol~pro$gleason*pro$svi, pro); summary(avo2)
+```
+
+By performing the one way ANOVA on the two qualitative variables, we can deduce that they're statistically very significant to predict lcavol.
+The two way ANOVA tells us that the interaction between the two variables, however, is not statistically significant at all (p-value too high).
+
+
+
+
+
+4 - 
+
+(a)
+```{r}
+reg1<-lm(lcavol ~ 1, data=pro)
+reg2<-lm(lcavol ~ .,data=pro[,c(1,4,9)])
+reg3<-lm(lcavol ~ ., data=pro[,c(1,2,9)])
+sum(reg1$residuals^2)
+sum(reg2$residuals^2)
+sum(reg3$residuals^2)
+```
+
+
+(b)
+```{r}
+res_min = 1000
+cb = combn(9,2)
+for (i in 1:dim(cb)[2]){
+  c<-cb[,i]
+  reg<-lm(lcavol ~ .,data=pro[,c])
+  if(sum(reg$residuals^2)<res_min){
+    res_min = sum(reg$residuals^2)
+    min = c
+  }
+}
+cat(res_min); cat("\n"); cat(min); cat("\n")
+```
+
+
+The best couple of predictors is (lcp, lpsa), just as deduced in former questions.
 
 
 

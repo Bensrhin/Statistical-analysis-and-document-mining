@@ -8,19 +8,17 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+# Part 1:  Multiple regression on simulated data
 
-#Question 1:
+## Question 1:
 
 ```{r}
 set.seed(0)
-n = 6000; m = 201
-vect = rnorm(n*m)
-m = matrix(vect,nrow = n, ncol = m)
-d = as.data.frame(m)
-
-# méthode 2:
 matrice = matrix(rnorm(201 * 6000, mean = 0, sd = 1), 201, 6000)
 dataFrame = as.data.frame(t(matrice))
+```
+
+```{r, echo=FALSE}
 # Each of these columns is referred to as a “variable”
 for (i in 1:201)
 {
@@ -29,7 +27,7 @@ for (i in 1:201)
 ```
 
 
-#Question 2:
+## Question 2:
 
 **Multiple linear regression model:**
 Using the 200 predictors,
@@ -37,52 +35,36 @@ $$
 \forall i \in [1,6000] \space x_{0 i} = \sum_{j=1}^{200}\beta_{j} x_{ji} + \beta_0 + \epsilon_i
 $$
 
-True regression model: (?? A VERIFIER)
-
-Je pense the true model signifie le fait de determiner les valeurs des betas
-dans ce cas
-$$
- \space x_{0} = \sum_{x=1}^{1206000} \beta_{i} x_{i} + \beta_0 + \epsilon_0
-$$
-Je pense the true model signifie le fait de determiner les valeurs des betas
-dans ce cas:
-tant que les colonnes sont indépendantes alors il n'y a pas de corrélation entre
-la colonnes $X_0$ et les autres colonnes, donc :
+**True regression model:**
+The true model does not include all predictors, that means some coefficients are null.
+In our case all betas are null except $\beta_0$, this is due to the fact that all columns 
+are independent, so there is no correlation between them:
 
 $$
-\forall i \in [1,6000] \quad \space x_{0 i} =  \epsilon_i \quad and \quad \epsilon_i 
+\forall i \in [1,6000] \quad \space x_{0 i} =  \beta_0 + \epsilon_i \quad and \quad \epsilon_i 
 \sim \mathcal{N}(0,\,1)\,.
-    
 $$
 **Comment :**
-...
+The estimated model includes all predictors without taking into consideration uncorrelated variables, whereas the true one includes only correlated variables.
 
-#Question 3 :
-
+## Question 3 :
 ```{r}
-# faut choisir d[, -1] au lieu de d : car on a besoin seulement des 200 dernières colonnes
-reg<-lm(d$V1 ~ ., d)
-summary(reg)$coefficients[summary(reg)$coefficients[,4]<=0.05,] #?? A VERIFIER
-```
-
-
-```{r}
-# attach(dataFrame) : makes variables available by their names directly.
-
 # we can use variable1 instead of dataFrame$variable1 
 reg <- lm(dataFrame$variable1 ~ .,dataFrame[,-1])
-
 # The number of coefficients assessed as significantly non-zero at level 5%
 x<-summary(reg)$coefficients
 a = (0<x[,4] & x[,4]<=0.05)
+```
+
+```{r, echo=FALSE}
 cat("The number of coefficients assessed as significantly non-zero at level 5% is :\n", sum(a), "coefficients")
 ```
 **Comment : **
 The proportion of these coefficients is equal to $\frac{11}{200} \approx 5.5 \%$ .
-As a result, this means that the correlation between columns is almost null.
+As a result, this means that the correlation between columns is almost null, which is already expected in the true model.
 
-#Question 4:
-```{r}
+## Question 4:
+```{r,echo=FALSE}
 data <- function(n)
 {
   eps1 <<- rnorm(n)
@@ -92,9 +74,26 @@ data <- function(n)
   x2 <<- 3*x1 + eps2
   y <<- x1 + x2 + 2 + eps3
 }
-
 ```
+**The distribution of **$(X_{1,i}, X_{2,i})$ **for a given i:**
 
+$$
+m_i  = (E(X_{1,i}), E(X_{2,i})) = (E(X_{1,i}), E(3X_{1,i} + \epsilon_{2,i} ))
+=(E(X_{1,i}), 3E(X_{1,i}) + E(\epsilon_{2,i} ))\\
+\boxed{m_i=(0,0)}
+$$
+$$
+\Sigma_i=
+\begin{pmatrix} 
+  Var(X_{1,i}) & cov(X_{1,i}, X_{2,i} ) \\
+  cov(X_{2,i}, X_{1,i} ) & Var(X_{2,i}) 
+\end{pmatrix}
+ \\
+ \boxed{
+ \Sigma_i =  \begin{pmatrix} 1 &3 \\ 3 & 10 \end{pmatrix}}
+$$
+As a result, $(X_{1,i}, X_{2,i}) \sim \mathcal{N}(m_i,\,\Sigma_i)$ for a given i.
+ 
 ```{r}
 n = 1000
 data(n)
@@ -102,13 +101,17 @@ plot(x1, x2, main="Cloud of points", xlab="X1", ylab="X2")
 reg<-lm(x2~x1)
 lines(x1, fitted.values(reg))
 ```
+
+```{r, echo=FALSE}
+cat("the shape is a line with a slope of : ", reg$coefficients[2])
+```
 **Comment : **
 $X_2$ and $X_1$ are clearly correlated. The plot resembles that of the function $y=3x$ with a fluctuation around it due to $\epsilon_2$.
 
 
-#Question 5:
+## Question 5:
 
-```{r}
+```{r, echo=FALSE}
 simulate <- function()
 {
   # plotting 2 grahs at the same line
@@ -148,6 +151,7 @@ simulate <- function()
   lines(x2, fitted.values(reg2))
 }
 ```
+
 Let's write mathematical equations of true models:
 
 Model 1:
@@ -166,11 +170,13 @@ Y_i = \frac{4}{3}X_{2,i} + 2 + (\epsilon_{3,i} - \frac{4}{3}\epsilon_{2,i})\\
 \boxed{Y_i = \frac{4}{3}X_{2,i} + 2 + \epsilon_{5,i}} \quad with \quad 
 \epsilon_{5,i} = \epsilon_{3,i} - \frac{1}{3}\epsilon_{2,i} \sim \mathcal{N}(0,\,\sqrt{\frac{10}{9}} \approx 1.054) \\ 
 $$
-```{r}
+```{r, echo=FALSE}
 simulate()
 ```
 
-The coefficients computed are quite close to the real values. 
+**comment (n=1000) : **The coefficients computed are quite close to the real values. 
+
+
 
 ```{r}
 set.seed(3)
@@ -180,9 +186,11 @@ simulate()
 ```
 
 
-By lowering the value of $n$, the computed values are less accurate, the variances $\tilde{\epsilon}_j$ are also bigger which indicates that the precision of the regression has decreased significantly.
+**comment (n=10) : **By lowering the value of $n$, the computed values are less accurate, the variances $\tilde{\epsilon}_j$ are also bigger which indicates that the precision of the regression has decreased significantly.
 
-```{r}
+
+## Question 6:
+```{r, echo=FALSE}
 # Model 3
 reg3 <- lm(y~x1+x2)
 # coefficients
@@ -190,19 +198,19 @@ beta0 = summary(reg3)$coefficients[1]
 beta1 = summary(reg3)$coefficients[2]
 beta2 = summary(reg3)$coefficients[3]
 sigma2 = summary(reg3)$sigma^2; 
+p1 = summary(reg3)$coefficients[2,4]
+p2 = summary(reg3)$coefficients[3,4]
 cat("\nEstimated coefficients in Model 3:\n")
-cat("beta0 = ", beta0, "\n")
-cat("beta1 = ", beta1, "\n")
-cat("beta2 = ", beta2, "\n")
-cat("sigma2 = ", sigma2, "\n")
+cat("beta0 = ", beta0, "\n", "beta1 = ", beta1, "\n", "beta2 = ", beta2, "\n", "sigma2 = ", sigma2, "\n", "p_value_X1 = ", p1, "\n", "p_value_X2 = ", p2, "\n")
 ```
+**comment**
+As we notice, p-value of x1 & x2 is higher enough to consider that this model is not accurate for small samples.
+This result is explained by the correlation between x1 and x2.
 
-The values are once again accurate. 
-
-PART 2 :
+# Part 2:  Analysis of prostate cancer data
 
 
-1 - 
+## 1 - 
 ```{r}
 prostateCancer<-read.table("./prostate.data",header=T);
 attach(prostateCancer)
@@ -218,7 +226,7 @@ There is an apparently strong correlation between lcavol and : svi, lcp and lpsa
 
 
 
-2 -
+## 2 -
 
 (a)
 ```{r}
@@ -301,7 +309,7 @@ By removing the best predictors, the model becomes quite inaccurate in compariso
 
 
 
-3 -  
+## 3 -  
 
 ```{r}
 aov_svi<-aov(pro$lcavol~pro$svi, pro); summary(aov_svi)
@@ -316,7 +324,7 @@ The two way ANOVA tells us that the interaction between the two variables, howev
 
 
 
-4 - 
+## 4 - 
 
 (a)
 ```{r}
@@ -411,7 +419,7 @@ The residual sum of squares is decreasing, which is completely predictable : the
 dunno..
 
 
-5 - 
+## 5 - 
 
 A reasonable model would be to predict lcavol basek on 6 predictors : age lbph lcp gleason pgg45 lpsa. Further predictors can be added to decrease the residual sum of squares, but not considerably.
 

@@ -213,13 +213,13 @@ This result is explained by the correlation between x1 and x2.
 
 
 ## Q1 - Preliminary analysis of the data
-### a)
+### a) Read the data in R :
 ```{r}
 prostateCancer<-read.table("./prostate.data",header=T);
 attach(prostateCancer)
 pro <- prostateCancer[,-10]
 ```
-### b)
+### b) Visualize the correlations
 ```{r}
 #visualization
 pairs(pro)
@@ -306,13 +306,19 @@ plotting()
 
 **Results : ** Yes, we can admit that the residuals are normally distributed.\\
 
+<<<<<<< HEAD
 
+=======
+```{r, echo=FALSE}
+cat("The residual sum of squares : ", sum(reg$residuals^2), "\n")
+```
+>>>>>>> de85fb21af422224541e68b70aa3a317c1a0d0cf
 
 
 ### e) Optimality :
 dunno, looks good .   .....
 
-### f)
+### f) Effect of lpsa & lcp
 ```{r}
 reg = lm(pro$lcavol ~ pro$lweight + pro$age + pro$lbph + pro$svi + pro$gleason + pro$pgg45)
 summary(reg)
@@ -338,20 +344,22 @@ The two way ANOVA tells us that the interaction between the two variables, howev
 
 
 
-## 4 - 
+## Q4 - Best subset selection.
 
-(a)
+### a) Describe the models implemented
+$lm(lcavol ~ 1, data=pro)$ is a regression model using zero predictors.\\
+$lm(lcavol ~ ., data=pro[,c(1,4,9)])$ is regression model using two predictors lbph & lpsa.\\
+$lm(lcavol ~ ., data=pro[,c(1,2,9)])$ is regression model using two predictors lweight & lpsa.\\
+**Their residual sums of squares:**\\
 ```{r}
 reg1<-lm(lcavol ~ 1, data=pro)
 reg2<-lm(lcavol ~ .,data=pro[,c(1,4,9)])
 reg3<-lm(lcavol ~ ., data=pro[,c(1,2,9)])
-sum(reg1$residuals^2)
-sum(reg2$residuals^2)
-sum(reg3$residuals^2)
+cat("First model : ", sum(reg1$residuals^2), "\nSecond model : ", sum(reg2$residuals^2), "\nThird model : ", sum(reg3$residuals^2))
 ```
+**RQ** : the lowest value refers to the best model.
 
-
-(b)
+### b) Compute the residual sums of squares
 ```{r}
 res_min = 1000
 cb = combn(9,2)
@@ -363,26 +371,20 @@ for (i in 1:dim(cb)[2]){
     min = c
   }
 }
-cat(res_min); cat("\n"); cat(names(pro)[min]); cat("\n")
+```
+```{r, echo=FALSE}
+cat("The best choice of 2 predictors among 8 is : ", names(pro)[min], "\nWhere the residual sums of squares is equal to : ", res_min)
 ```
 
+### c) The set of predictors that minimizes the residualsum of squares.
 
-The best couple of predictors is (lcp, lpsa), just as deduced in former questions.
-
-
-
-(c)
-
-```{r}
+```{r, echo=FALSE}
 ress = c()
 
 #k=0
 reg<-lm(lcavol ~ 1, data=pro);
 ress = c(ress, sum(reg$residuals^2))
-cat("k = 0", "\n"); 
-cat(sum(reg$residuals^2)); cat("\n");
-cat("--\n\n")
-
+cat("k =  0  , ", sum(reg$residuals^2) , "\n"); 
 #k=1
 for (k in 2:9){
   res_min = 1000
@@ -393,9 +395,7 @@ for (k in 2:9){
   }
 }
 ress = c(ress, sum(reg$residuals^2))
-cat("k = 1", "\n"); 
-cat(res_min); cat("\n");
-cat(names(pro)[min]); cat("\n\n")
+cat("k =  1  , ", res_min , " , ", names(pro)[min], "\n"); 
 
 #k from 2 to 8
 for(k in 2:8){
@@ -410,30 +410,27 @@ for(k in 2:8){
     }
   }
   ress = c(ress, sum(reg$residuals^2))
-  cat("k = ", k, "\n"); 
-  cat(res_min); cat("\n");
-  cat(names(pro)[min]); cat("\n\n")
+  cat("k = ", k, " , ", res_min , " , ", names(pro)[min], "\n");
 }
 ```
 
-N.B : the set of best $k$ predictors is not necessarily a subset of the set of the best $k'$ predictors, such that $k<k'$. The example $k=4$ and $k'=5$ illustrates this point.
+**N.B :** the set of best $k$ predictors is not necessarily a subset of the set of the best $k'$ predictors, such that $k<k'$. The example $k=4$ and $k'=5$ illustrates this point.\\
 
 ```{r}
-plot(ress)
-par(new=TRUE)
-lines(ress)
+plot(seq(0,8,1), ress, xlab="k", ylab="Residual sum of squares", type="l")
 ```
 
+**Comment :**
 The residual sum of squares is decreasing, which is completely predictable : the more predictors we have, the more we know about the data and therefore the fitted values get closer to the real values.
 
 
 
 
-(d)
-dunno..
+### d) Optimal size for the regression models
 
 
-## 5 - 
+
+## Q5 - Conclusion.
 
 
 A reasonable model would be to predict lcavol basek on 6 predictors : age lbph lcp gleason pgg45 lpsa. Further predictors can be added to decrease the residual sum of squares, but not considerably.

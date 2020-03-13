@@ -304,19 +304,19 @@ curve(norm(x), add=TRUE)
 plotting()
 ```
 
-**Results : ** Yes, we can admit that the residuals are normally distributed.\\
+**Results : ** Yes, according to the histogram, we can admit safely that the residuals are normally distributed, which goes accordingly with our model.\\
 
-<<<<<<< HEAD
 
-=======
 ```{r, echo=FALSE}
 cat("The residual sum of squares : ", sum(reg$residuals^2), "\n")
 ```
->>>>>>> de85fb21af422224541e68b70aa3a317c1a0d0cf
 
 
 ### e) Optimality :
-dunno, looks good .   .....
+
+Using multiple linear regression, we can predict lcavol using all the parameters. This model is optimal in the sense that it's the best linear regression we can compute with the given data. That doesn't mean that other models that use more sophisticated techniques (NN's, Random Forrest, etc..) will not give use better results compared to this one.
+
+
 
 ### f) Effect of lpsa & lcp
 ```{r}
@@ -347,9 +347,9 @@ The two way ANOVA tells us that the interaction between the two variables, howev
 ## Q4 - Best subset selection.
 
 ### a) Describe the models implemented
-$lm(lcavol ~ 1, data=pro)$ is a regression model using zero predictors.\\
-$lm(lcavol ~ ., data=pro[,c(1,4,9)])$ is regression model using two predictors lbph & lpsa.\\
-$lm(lcavol ~ ., data=pro[,c(1,2,9)])$ is regression model using two predictors lweight & lpsa.\\
+$lm(lcavol \tilde{} 1, data=pro)$ is a regression model using zero predictors.\\
+$lm(lcavol \tilde{} ., data=pro[,c(1,4,9)])$ is regression model using two predictors lbph & lpsa.\\
+$lm(lcavol \tilde{} ., data=pro[,c(1,2,9)])$ is regression model using two predictors lweight & lpsa.\\
 **Their residual sums of squares:**\\
 ```{r}
 reg1<-lm(lcavol ~ 1, data=pro)
@@ -426,8 +426,8 @@ The residual sum of squares is decreasing, which is completely predictable : the
 
 
 
-### d) Optimal size for the regression models
-
+### d) Other suggestions
+Instead of minimizing the RSS, we can use the gradient descent method.
 
 
 ## Q5 - Conclusion.

@@ -160,7 +160,7 @@ Y_i = X_{2,i} + X_{1,i} + 2 + \epsilon_{3,i} \\
 Y_i = 3X_{1,i} + \epsilon_{2,i} + X_{1,i} + 2 + \epsilon_{3,i} \\
 Y_i = 4X_{1,i} + 2 + (\epsilon_{3,i} + \epsilon_{2,i})\\
 \boxed{Y_i = 4X_{1,i} + 2 + \epsilon_{4,i}} \quad with \quad 
-\epsilon_{4,i} = \epsilon_{3,i} + \epsilon_{2,i} \sim \mathcal{N}(0,\,\sqrt2)\\
+\epsilon_{4,i} = \epsilon_{3,i} + \epsilon_{2,i} \sim \mathcal{N}(0,\,2)\\
 $$
 Model 2:
 $$
@@ -168,7 +168,7 @@ Y_i = X_{2,i} + X_{1,i} + 2 + \epsilon_{3,i} \\
 Y_i = \frac{1}{3}X_{2,i} - \frac{1}{3}\epsilon_{2,i} + X_{1,i} + 2 + \epsilon_{3,i} \\
 Y_i = \frac{4}{3}X_{2,i} + 2 + (\epsilon_{3,i} - \frac{4}{3}\epsilon_{2,i})\\
 \boxed{Y_i = \frac{4}{3}X_{2,i} + 2 + \epsilon_{5,i}} \quad with \quad 
-\epsilon_{5,i} = \epsilon_{3,i} - \frac{1}{3}\epsilon_{2,i} \sim \mathcal{N}(0,\,\sqrt{\frac{10}{9}} \approx 1.054) \\ 
+\epsilon_{5,i} = \epsilon_{3,i} - \frac{1}{3}\epsilon_{2,i} \sim \mathcal{N}(0,\,\frac{10}{9} \approx 1.11) \\ 
 $$
 ```{r, echo=FALSE}
 simulate()
@@ -210,106 +210,120 @@ This result is explained by the correlation between x1 and x2.
 # Part 2:  Analysis of prostate cancer data
 
 
-## 1 - 
+## Q1 - Preliminary analysis of the data
+### a)
 ```{r}
 prostateCancer<-read.table("./prostate.data",header=T);
 attach(prostateCancer)
+pro <- prostateCancer[,-10]
 ```
-
+### b)
 ```{r}
-pro <- prostateCancer[1:9]
+#visualization
 pairs(pro)
+#numerical solution
+corr <- c(0)
+y <- pro$lcavol
+for (i in 2:9)
+{
+  x <- pro[,i]
+  reg <- lm(y~x)
+  corr[i] <- summary(reg)$r.squared
+}
 ```
 
-There is an apparently strong correlation between lcavol and : svi, lcp and lpsa.
+
+```{r, echo=FALSE}
+# visualization or names(pro)[corr>0.2]
+barplot(corr[-1],beside=T,col=c("#F7D358"),ylab="Correlation", names = names(pro)[-1])
+```
+
+**Result:** There is an apparently strong correlation between lcavol and : svi, lcp and lpsa.
 
 
+## Q2 - Linear regression
 
+### a)
+**The mathematical equation of the regression model :**
+$$
+Y = \beta_{10} X_{10} + \beta_9 X_9 + \beta_8 X_8 + \beta_7 X_7 + \beta_6 X_6 + \beta_5 X_5 + \beta_4 X_4 + \beta_3 X_3 + \beta_2 X_2 + \beta_1 X_1 +  \beta_0 + \epsilon 
+$$
+Where the betas are the coefficients and :
+$X_1$ : lweight , $X_2$ : age , $X_3$ : lbph , $X_4$ : svi , $X_5$ : lcp , $X_6$ : gleason7 , $X_7$ : gleason8 , $X_8$ : gleason9,  , $X_{9}$ : pgg45 , $X_{10}$ : lpsa
 
-## 2 -
-
-(a)
 ```{r}
+# Our qualitative variables
 pro$gleason<-factor(pro$gleason)
 pro$svi<-factor(pro$svi)
 
-reg <- lm(pro$lcavol ~., pro)
+# Multiple regression
+reg <- lm(pro$lcavol ~., pro[, -1])
 summary(reg)
 ```
 
-
+**RQ : **
 -  We notice the presence of gleason7, 8 and 9 instead of gleason. Each one of these variables represents a level of the variable we made quantitative (using the command factor()). Basically, instead of performing a regression based on the 4 possible values of gleason, we seperate the variable gleason into 3 variables, each one representing a simple "YES" or "NO" if the variable is equal to the corresponding level (we don't need a fourth one, since its value can be deduced from the 3 others). 
 The same thing applies for the variable svi, with 2 levels, we find ourselves with one variable in the linear regression, with the same meaning as described before.
 
-
+**Comment : **
 -  There is a strong correlation between lcavol and : lcp and lpsa with a p-value inferior to $10^{-5}$, and a weak correlation between lcavol and pgg45 with a p-value inferior to $0.1$.
 
 
-
-
-(b) 
+### b)  confidence intervals of level 95%
 ```{r}
 confint(reg)
 ```
 
-COMMENT MISSING
+The true values of the parameters belong to the confidence intervals. The smaller βj is, the narrower the interval is.
 
-
-
-(c)
+### c) the effect of the lpsa variable
 ```{r}
 reg_lpsa <- lm(pro$lcavol ~lpsa)
 summary(reg_lpsa)$coefficients
 confint(reg_lpsa)
 ```
-
-lpsa is a very strong predictor of lcavol.
-
-
-(d)
-
-```{r}
-plot(pro$lcavol, reg$fitted.values)
-```
+**Results:**
+lpsa is a very strong predictor of lcavol, this is due to its very small p-value.
+Moreover, 0 does not belong to the confidence interval, and therefore We can reject the hypothesis that $\beta_{lpsa} = 0$.
 
 
+### d) Plot the predicted values of lcavol
 
-```{r}
-hist(reg$residuals, prob=TRUE)
+```{r, echo=FALSE}
+plotting <- function(){
+plot(pro$lcavol, reg$fitted.values, col="blue" ,xlab="Actual Values", ylab="Predicted Values")
+hist(reg$residuals, col = "green", border = "red", freq=FALSE , xlab= "", ylab="", main=" Histogram of residuals")
 norm <- function(x){
   return (dnorm(x, sd = sd(reg$residuals)))
 }
 par(new=TRUE)
 curve(norm(x), add=TRUE)
+}
+plotting()
 ```
 
-Yes, we can admit that the residuals are normally distributed.
+**Results : ** Yes, we can admit that the residuals are normally distributed.\\
 
-The residual sum of squares :
-```{r}
-sum(reg$residuals^2)
+```{r, echo=False}
+cat("The residual sum of squares : ", sum(reg$residuals^2), "\n")
 ```
 
 
-(e)
-dunno, looks good
+### e) Optimality :
+dunno, looks good .   .....
 
-(f)
+### f)
 ```{r}
-reg_f = lm(pro$lcavol ~ pro$lweight + pro$age + pro$lbph + pro$svi + pro$gleason + pro$pgg45)
-summary(reg_f)
-```
-
-By plotting the fitted values against the real values :
-```{r}
-plot(pro$lcavol, reg_f$fitted.values)
+reg = lm(pro$lcavol ~ pro$lweight + pro$age + pro$lbph + pro$svi + pro$gleason + pro$pgg45)
+summary(reg)
+plotting()
 ```
 
 By removing the best predictors, the model becomes quite inaccurate in comparison to the previous one, even if the p-value of svi1 is very low, that's because that variable is the best predictor between all the predictors available, and is not an indicator of the validity of the model in itself.
 
 
 
-## 3 -  
+## Q3 - Effect of the qualitative variables.
 
 ```{r}
 aov_svi<-aov(pro$lcavol~pro$svi, pro); summary(aov_svi)

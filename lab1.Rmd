@@ -1,0 +1,451 @@
+---
+title: "SADM_Lab1"
+author: "El Ansary Otmane, Benchekroun Omar, Bensrhier Nabil"
+date: "01/03/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Part 1:  Multiple regression on simulated data
+
+## Question 1:
+
+```{r}
+set.seed(0)
+matrice = matrix(rnorm(201 * 6000, mean = 0, sd = 1), 201, 6000)
+dataFrame = as.data.frame(t(matrice))
+```
+
+```{r, echo=FALSE}
+# Each of these columns is referred to as a “variable”
+for (i in 1:201)
+{
+  colnames(dataFrame)[i] <- paste("variable", i, sep="")
+}
+```
+
+
+## Question 2:
+
+**Multiple linear regression model:**
+Using the 200 predictors,
+$$
+\forall i \in [1,6000] \space x_{0 i} = \sum_{j=1}^{200}\beta_{j} x_{ji} + \beta_0 + \epsilon_i
+$$
+
+**True regression model:**
+The true model does not include all predictors, that means some coefficients are null.
+In our case all betas are null except $\beta_0$, this is due to the fact that all columns 
+are independent, so there is no correlation between them:
+
+$$
+\forall i \in [1,6000] \quad \space x_{0 i} =  \beta_0 + \epsilon_i \quad and \quad \epsilon_i 
+\sim \mathcal{N}(0,\,1)\,.
+$$
+**Comment :**
+The estimated model includes all predictors without taking into consideration uncorrelated variables, whereas the true one includes only correlated variables.
+
+## Question 3 :
+```{r}
+# we can use variable1 instead of dataFrame$variable1 
+reg <- lm(dataFrame$variable1 ~ .,dataFrame[,-1])
+# The number of coefficients assessed as significantly non-zero at level 5%
+x<-summary(reg)$coefficients
+a = (0<x[,4] & x[,4]<=0.05)
+```
+
+```{r, echo=FALSE}
+cat("The number of coefficients assessed as significantly non-zero at level 5% is :\n", sum(a), "coefficients")
+```
+**Comment : **
+The proportion of these coefficients is equal to $\frac{11}{200} \approx 5.5 \%$ .
+As a result, this means that the correlation between columns is almost null, which is already expected in the true model.
+
+## Question 4:
+```{r,echo=FALSE}
+data <- function(n)
+{
+  eps1 <<- rnorm(n)
+  eps2 <<- rnorm(n)
+  eps3 <<- rnorm(n)
+  x1 <<- eps1
+  x2 <<- 3*x1 + eps2
+  y <<- x1 + x2 + 2 + eps3
+}
+```
+**The distribution of **$(X_{1,i}, X_{2,i})$ **for a given i:**
+
+$$
+m_i  = (E(X_{1,i}), E(X_{2,i})) = (E(X_{1,i}), E(3X_{1,i} + \epsilon_{2,i} ))
+=(E(X_{1,i}), 3E(X_{1,i}) + E(\epsilon_{2,i} ))\\
+\boxed{m_i=(0,0)}
+$$
+$$
+\Sigma_i=
+\begin{pmatrix} 
+  Var(X_{1,i}) & cov(X_{1,i}, X_{2,i} ) \\
+  cov(X_{2,i}, X_{1,i} ) & Var(X_{2,i}) 
+\end{pmatrix}
+ \\
+ \boxed{
+ \Sigma_i =  \begin{pmatrix} 1 &3 \\ 3 & 10 \end{pmatrix}}
+$$
+As a result, $(X_{1,i}, X_{2,i}) \sim \mathcal{N}(m_i,\,\Sigma_i)$ for a given i.
+ 
+```{r}
+n = 1000
+data(n)
+plot(x1, x2, main="Cloud of points", xlab="X1", ylab="X2")
+reg<-lm(x2~x1)
+lines(x1, fitted.values(reg))
+```
+
+```{r, echo=FALSE}
+cat("the shape is a line with a slope of : ", reg$coefficients[2])
+```
+**Comment : **
+$X_2$ and $X_1$ are clearly correlated. The plot resembles that of the function $y=3x$ with a fluctuation around it due to $\epsilon_2$.
+
+
+## Question 5:
+
+```{r, echo=FALSE}
+simulate <- function()
+{
+  # plotting 2 grahs at the same line
+  par(mfcol=c(1,2))
+  
+  # Model 1
+  reg1 <- lm(y~x1)
+
+  # coefficients
+  beta0 = summary(reg1)$coefficients[1]; 
+  beta1 = summary(reg1)$coefficients[2]; 
+  sigma2 = summary(reg1)$sigma^2; 
+  cat("Estimated coefficients in Model 1:\n")
+  cat("beta0 = ", beta0, "\n")
+  cat("beta1 = ", beta1, "\n")
+  cat("sigma2 = ", sigma2, "\n")
+  
+  
+  # Model 2
+  reg2 <- lm(y~x2)
+
+  # coefficients
+  beta0 = summary(reg2)$coefficients[1]; 
+  beta1 = summary(reg2)$coefficients[2]; 
+  sigma2 = summary(reg2)$sigma^2; 
+  cat("\nEstimated coefficients in Model 2:\n")
+  cat("beta0 = ", beta0, "\n")
+  cat("beta1 = ", beta1, "\n")
+  cat("sigma2 = ", sigma2, "\n")
+  
+  # visualizations
+  
+  plot(x1, y, main="Cloud of points : Model 1", xlab="X1", ylab="Y")
+  lines(x1, fitted.values(reg1))
+  
+  plot(x2, y, main="Cloud of points : Model 2", xlab="X2", ylab="Y")
+  lines(x2, fitted.values(reg2))
+}
+```
+
+Let's write mathematical equations of true models:
+
+Model 1:
+$$
+Y_i = X_{2,i} + X_{1,i} + 2 + \epsilon_{3,i} \\ 
+Y_i = 3X_{1,i} + \epsilon_{2,i} + X_{1,i} + 2 + \epsilon_{3,i} \\
+Y_i = 4X_{1,i} + 2 + (\epsilon_{3,i} + \epsilon_{2,i})\\
+\boxed{Y_i = 4X_{1,i} + 2 + \epsilon_{4,i}} \quad with \quad 
+\epsilon_{4,i} = \epsilon_{3,i} + \epsilon_{2,i} \sim \mathcal{N}(0,\,2)\\
+$$
+Model 2:
+$$
+Y_i = X_{2,i} + X_{1,i} + 2 + \epsilon_{3,i} \\ 
+Y_i = \frac{1}{3}X_{2,i} - \frac{1}{3}\epsilon_{2,i} + X_{1,i} + 2 + \epsilon_{3,i} \\
+Y_i = \frac{4}{3}X_{2,i} + 2 + (\epsilon_{3,i} - \frac{4}{3}\epsilon_{2,i})\\
+\boxed{Y_i = \frac{4}{3}X_{2,i} + 2 + \epsilon_{5,i}} \quad with \quad 
+\epsilon_{5,i} = \epsilon_{3,i} - \frac{1}{3}\epsilon_{2,i} \sim \mathcal{N}(0,\,\frac{10}{9} \approx 1.11) \\ 
+$$
+```{r, echo=FALSE}
+simulate()
+```
+
+**comment (n=1000) : **The coefficients computed are quite close to the real values. 
+
+
+
+```{r}
+set.seed(3)
+n = 10
+data(n)
+simulate()
+```
+
+
+**comment (n=10) : **By lowering the value of $n$, the computed values are less accurate, the variances $\tilde{\epsilon}_j$ are also bigger which indicates that the precision of the regression has decreased significantly.
+
+
+## Question 6:
+```{r, echo=FALSE}
+# Model 3
+reg3 <- lm(y~x1+x2)
+# coefficients
+beta0 = summary(reg3)$coefficients[1] 
+beta1 = summary(reg3)$coefficients[2]
+beta2 = summary(reg3)$coefficients[3]
+sigma2 = summary(reg3)$sigma^2; 
+p1 = summary(reg3)$coefficients[2,4]
+p2 = summary(reg3)$coefficients[3,4]
+cat("\nEstimated coefficients in Model 3:\n")
+cat("beta0 = ", beta0, "\n", "beta1 = ", beta1, "\n", "beta2 = ", beta2, "\n", "sigma2 = ", sigma2, "\n", "p_value_X1 = ", p1, "\n", "p_value_X2 = ", p2, "\n")
+```
+**comment**
+As we notice, the p-values of x1 & x2 are high enough to consider that this model is not accurate for small samples.
+This result is explained by the correlation between x1 and x2.
+
+# Part 2:  Analysis of prostate cancer data
+
+
+## Q1 - Preliminary analysis of the data
+### a) Read the data in R :
+```{r}
+prostateCancer<-read.table("./prostate.data",header=T);
+attach(prostateCancer)
+pro <- prostateCancer[,-10]
+```
+### b) Visualize the correlations
+```{r}
+#visualization
+pairs(pro)
+#numerical solution
+corr <- c(0)
+y <- pro$lcavol
+for (i in 2:9)
+{
+  x <- pro[,i]
+  reg <- lm(y~x)
+  corr[i] <- summary(reg)$r.squared
+}
+```
+
+
+```{r, echo=FALSE}
+# visualization or names(pro)[corr>0.2]
+barplot(corr[-1],beside=T,col=c("#F7D358"),ylab="Correlation", names = names(pro)[-1])
+```
+
+**Result:** There is an apparently strong correlation between lcavol and : svi, lcp and lpsa.
+
+
+## Q2 - Linear regression
+
+### a)
+**The mathematical equation of the regression model :**
+$$
+Y = \beta_{10} X_{10} + \beta_9 X_9 + \beta_8 X_8 + \beta_7 X_7 + \beta_6 X_6 + \beta_5 X_5 + \beta_4 X_4 + \beta_3 X_3 + \beta_2 X_2 + \beta_1 X_1 +  \beta_0 + \epsilon 
+$$
+Where the betas are the coefficients and :
+$X_1$ : lweight , $X_2$ : age , $X_3$ : lbph , $X_4$ : svi , $X_5$ : lcp , $X_6$ : gleason7 , $X_7$ : gleason8 , $X_8$ : gleason9,  , $X_{9}$ : pgg45 , $X_{10}$ : lpsa
+
+```{r}
+# Our qualitative variables
+pro$gleason<-factor(pro$gleason)
+pro$svi<-factor(pro$svi)
+
+# Multiple regression
+reg <- lm(pro$lcavol ~., pro[, -1])
+summary(reg)
+```
+
+**RQ : **
+-  We notice the presence of gleason7, 8 and 9 instead of gleason. Each one of these variables represents a level of the variable we made quantitative (using the command factor()). Basically, instead of performing a regression based on the 4 possible values of gleason, we seperate the variable gleason into 3 variables, each one representing a simple "YES" or "NO" if the variable is equal to the corresponding level (we don't need a fourth one, since its value can be deduced from the 3 others). 
+The same thing applies for the variable svi, with 2 levels, we find ourselves with one variable in the linear regression, with the same meaning as described before.
+
+**Comment : **
+-  There is a strong correlation between lcavol and : lcp and lpsa with a p-value inferior to $10^{-5}$, and a weak correlation between lcavol and pgg45 with a p-value inferior to $0.1$.
+
+
+### b)  confidence intervals of level 95%
+```{r}
+confint(reg)
+```
+
+The true values of the parameters belong to the confidence intervals. The smaller βj is, the narrower the interval is.
+
+### c) the effect of the lpsa variable
+```{r}
+reg_lpsa <- lm(pro$lcavol ~lpsa)
+summary(reg_lpsa)$coefficients
+confint(reg_lpsa)
+```
+**Results:**
+lpsa is a very strong predictor of lcavol, this is due to its very small p-value.
+Moreover, 0 does not belong to the confidence interval, and therefore We can reject the hypothesis that $\beta_{lpsa} = 0$.
+
+
+### d) Plot the predicted values of lcavol
+
+```{r, echo=FALSE}
+plotting <- function(){
+plot(pro$lcavol, reg$fitted.values, col="blue" ,xlab="Actual Values", ylab="Predicted Values")
+hist(reg$residuals, col = "green", border = "red", freq=FALSE , xlab= "", ylab="", main=" Histogram of residuals")
+norm <- function(x){
+  return (dnorm(x, sd = sd(reg$residuals)))
+}
+par(new=TRUE)
+curve(norm(x), add=TRUE)
+}
+plotting()
+```
+
+**Results : ** Yes, according to the histogram, we can admit safely that the residuals are normally distributed, which goes accordingly with our model.\\
+
+
+```{r, echo=FALSE}
+cat("The residual sum of squares : ", sum(reg$residuals^2), "\n")
+```
+
+
+### e) Optimality :
+
+Using multiple linear regression, we can predict lcavol using all the parameters. This model is optimal in the sense that it's the best linear regression we can compute with the given data. That doesn't mean that other models that use more sophisticated techniques (NN's, Random Forrest, etc..) will not give use better results compared to this one.
+
+
+
+### f) Effect of lpsa & lcp
+```{r}
+reg = lm(pro$lcavol ~ pro$lweight + pro$age + pro$lbph + pro$svi + pro$gleason + pro$pgg45)
+summary(reg)
+plotting()
+```
+
+By removing the best predictors, the model becomes quite inaccurate in comparison to the previous one, even if the p-value of svi1 is very low, that's because that variable is the best predictor between all the predictors available, and is not an indicator of the validity of the model in itself.
+
+
+
+## Q3 - Effect of the qualitative variables.
+
+```{r}
+aov_svi<-aov(pro$lcavol~pro$svi, pro); summary(aov_svi)
+aov_gleason<-aov(pro$lcavol~pro$gleason, pro); summary(aov_gleason)
+avo2 <-aov(pro$lcavol~pro$gleason*pro$svi, pro); summary(avo2)
+```
+
+By performing the one way ANOVA on the two qualitative variables, we can deduce that they're statistically very significant to predict lcavol.
+The two way ANOVA tells us that the interaction between the two variables, however, is not statistically significant at all (p-value too high).
+
+
+
+
+
+## Q4 - Best subset selection.
+
+### a) Describe the models implemented
+$lm(lcavol \tilde{} 1, data=pro)$ is a regression model using zero predictors.\\
+$lm(lcavol \tilde{} ., data=pro[,c(1,4,9)])$ is regression model using two predictors lbph & lpsa.\\
+$lm(lcavol \tilde{} ., data=pro[,c(1,2,9)])$ is regression model using two predictors lweight & lpsa.\\
+**Their residual sums of squares:**\\
+```{r}
+reg1<-lm(lcavol ~ 1, data=pro)
+reg2<-lm(lcavol ~ .,data=pro[,c(1,4,9)])
+reg3<-lm(lcavol ~ ., data=pro[,c(1,2,9)])
+cat("First model : ", sum(reg1$residuals^2), "\nSecond model : ", sum(reg2$residuals^2), "\nThird model : ", sum(reg3$residuals^2))
+```
+**RQ** : the lowest value refers to the best model.
+
+### b) Compute the residual sums of squares
+```{r}
+res_min = 1000
+cb = combn(9,2)
+for (i in 1:dim(cb)[2]){
+  c<-cb[,i]
+  reg<-lm(lcavol ~ .,data=pro[,c])
+  if(sum(reg$residuals^2)<res_min){
+    res_min = sum(reg$residuals^2)
+    min = c
+  }
+}
+```
+```{r, echo=FALSE}
+cat("The best choice of 2 predictors among 8 is : ", names(pro)[min], "\nWhere the residual sums of squares is equal to : ", res_min)
+```
+
+### c) The set of predictors that minimizes the residualsum of squares.
+
+```{r, echo=FALSE}
+ress = c()
+
+#k=0
+reg<-lm(lcavol ~ 1, data=pro);
+ress = c(ress, sum(reg$residuals^2))
+cat("k =  0  , ", sum(reg$residuals^2) , "\n"); 
+#k=1
+for (k in 2:9){
+  res_min = 1000
+  reg<-lm(lcavol ~ pro[,k])
+  if(sum(reg$residuals^2)<res_min){
+    res_min = sum(reg$residuals^2)
+    min = k
+  }
+}
+ress = c(ress, sum(reg$residuals^2))
+cat("k =  1  , ", res_min , " , ", names(pro)[min], "\n"); 
+
+#k from 2 to 8
+for(k in 2:8){
+  res_min = 1000
+  cb = combn(9,k)
+  for (i in 1:dim(cb)[2]){
+    c<-cb[,i]
+    reg<-lm(lcavol ~ .,data=pro[,c])
+    if(sum(reg$residuals^2)<res_min){
+      res_min = sum(reg$residuals^2)
+      min = c
+    }
+  }
+  ress = c(ress, sum(reg$residuals^2))
+  cat("k = ", k, " , ", res_min , " , ", names(pro)[min], "\n");
+}
+```
+
+**N.B :** the set of best $k$ predictors is not necessarily a subset of the set of the best $k'$ predictors, such that $k<k'$. The example $k=4$ and $k'=5$ illustrates this point.\\
+
+```{r}
+plot(seq(0,8,1), ress, xlab="k", ylab="Residual sum of squares", type="l")
+```
+
+**Comment :**
+The residual sum of squares is decreasing, which is completely predictable : the more predictors we have, the more we know about the data and therefore the fitted values get closer to the real values.
+
+
+
+
+### d) Other suggestions
+Instead of minimizing the RSS, we can use the gradient descent method.
+
+
+## Q5 - Conclusion.
+
+
+A reasonable model would be to predict lcavol basek on 6 predictors : age lbph lcp gleason pgg45 lpsa. Further predictors can be added to decrease the residual sum of squares, but not considerably.
+
+
+We're going to use this model to predict a subset of the data (around 20%), and then compare the results with the original data.
+
+```{r warning=FALSE}
+train = pro[1:80,]
+test = pro[81:97,]
+rg <- lm(train$lcavol ~train$lpsa)
+rss = sum((predict(rg,test)-test$lcavol)^2); rss
+```
+
+This shows us the basic way to use a multiple linear regression model to predict lcavol.
+
+
+

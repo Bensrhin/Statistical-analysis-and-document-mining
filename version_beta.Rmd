@@ -2,7 +2,9 @@
 title: "SADM_Lab1"
 author: "El Ansary Otmane, Benchekroun Omar, Bensrhier Nabil"
 date: "01/03/2020"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -204,7 +206,7 @@ cat("\nEstimated coefficients in Model 3:\n")
 cat("beta0 = ", beta0, "\n", "beta1 = ", beta1, "\n", "beta2 = ", beta2, "\n", "sigma2 = ", sigma2, "\n", "p_value_X1 = ", p1, "\n", "p_value_X2 = ", p2, "\n")
 ```
 **comment**
-As we notice, p-value of x1 & x2 is higher enough to consider that this model is not accurate for small samples.
+As we notice, the p-values of x1 & x2 are high enough to consider that this model is not accurate for small samples.
 This result is explained by the correlation between x1 and x2.
 
 # Part 2:  Analysis of prostate cancer data
@@ -304,9 +306,7 @@ plotting()
 
 **Results : ** Yes, we can admit that the residuals are normally distributed.\\
 
-```{r, echo=False}
-cat("The residual sum of squares : ", sum(reg$residuals^2), "\n")
-```
+
 
 
 ### e) Optimality :
@@ -435,8 +435,20 @@ dunno..
 
 ## 5 - 
 
+
 A reasonable model would be to predict lcavol basek on 6 predictors : age lbph lcp gleason pgg45 lpsa. Further predictors can be added to decrease the residual sum of squares, but not considerably.
 
+
+We're going to use this model to predict a subset of the data (around 20%), and then compare the results with the original data.
+
+```{r warning=FALSE}
+train = pro[1:80,]
+test = pro[81:97,]
+rg <- lm(train$lcavol ~train$lpsa)
+rss = sum((predict(rg,test)-test$lcavol)^2); rss
+```
+
+This shows us the basic way to use a multiple linear regression model to predict lcavol.
 
 
 

@@ -54,8 +54,7 @@ We conclude that there is not enough data to perform a linear regression predict
 ## 3 - PCA
 
 ### a)
-TO FILL IN LATER
-
+TO DO
 
 ### b)
 
@@ -154,9 +153,8 @@ individuals outside the database from its genetic markers.
 library("fields")
 matrix = rdist.earth(cbind(lmlong$fitted.values,lmlat$fitted.values),
             cbind(NAm2[,7], NAm2[,8]), miles=FALSE)
-error = mean(matrix)
+error = mean(diag(matrix))
 error
-#mean(diag(matrix)) MAYBE?
 ```
 
 
@@ -186,7 +184,8 @@ Cross Validation is a technique used to determine the quality of the built model
 
 ```{r}
 k = 10
-labels=c(rep(1:k,each=dim(NAm2)[1]/k), 1:dim(NAm2)[1]%%k)
+labels=rep(1:k,each=(dim(NAm2)[1]/k))
+labels=c(labels, 1:(dim(NAm2)[1]%%k)  )
 set=sample(labels,dim(NAm2)[1])
 ```
 
@@ -195,23 +194,104 @@ set=sample(labels,dim(NAm2)[1])
 ### b)
 
 
+```{r}
+nindiv <- dim(NAm2)[1]
+
+pcapredict <- function(naxes){
+  predictedCoord <- cbind(rep(0,nindiv),rep(0,nindiv))
+  #pcalong=data.frame(cbind(long=NAm2[,c("long")],pcaNAm2$x))
+  for (f in 1:k){
+    pcalong.test=data.frame(cbind(long=NAm2[(set==f),c("long")],pcaNAm2$x[set==f, 1:(1+naxes)]))
+    pcalong.train = data.frame(cbind(long=NAm2[(set!=f),c("long")],pcaNAm2$x[set!=f, 1:(1+naxes)]))
+    reg <- lm(pcalong.train$long~., pcalong.train)
+    predlong = predict(reg, pcalong.test)
+    
+    pcalat.test=data.frame(cbind(lat=NAm2[(set==f),c("lat")],pcaNAm2$x[set==f, 1:(1+naxes)]))
+    pcalat.train = data.frame(cbind(lat=NAm2[(set!=f),c("lat")],pcaNAm2$x[set!=f, 1:(1+naxes)]))
+    reg <- lm(pcalat.train$lat~., pcalat.train)
+    predlat = predict(reg, pcalat.test)
+    
+    predictedCoord[set==f] = cbind(predlong, predlat)
+  }
+  matrix = rdist.earth(cbind(predictedCoord[,1],predictedCoord[,2]),
+              cbind(NAm2[,c("long")], NAm2[,c("lat")]), miles=FALSE)
+  error = mean(diag(matrix))
+  return (error)
+}
+
+pcapredict(4)
+```
+
+
+### c)
+
+```{r}
+s = seq(2,440,by=10)
+p =  sapply(s, pcapredict)
+```
 
 
 
 
+```{r}
+plot(s,p)
+min(p)
+```
+
+### d)
+
+We should keep the model that minimizes the prediction error, that would be the one with the first
+
+```{r echo=FALSE}
+nbmin = s[p==min(p)]
+nbmin
+```
+
+principal components.
+
+Its prediction error is
+```{r echo=FALSE}
+min = min(p)
+min
+```
+
+We choose to compute the training error by computing the mean of the errors in each training set. We can't put everything in a matrix like the test data because we will have redunduncies.
+
+The training error is
+
+```{r}
+naxes = nbmin
+errors = c()
+predictedCoord <- cbind(rep(0,nindiv),rep(0,nindiv))
+for (f in 1:k){
+  pcalong.test=data.frame(cbind(long=NAm2[(set==f),c("long")],pcaNAm2$x[set==f, 1:(1+naxes)]))
+  pcalong.train = data.frame(cbind(long=NAm2[(set!=f),c("long")],pcaNAm2$x[set!=f, 1:(1+naxes)]))
+  reg <- lm(pcalong.train$long~., pcalong.train)
+  predlong = predict(reg, pcalong.train)
+
+  pcalat.test=data.frame(cbind(lat=NAm2[(set==f),c("lat")],pcaNAm2$x[set==f, 1:(1+naxes)]))
+  pcalat.train = data.frame(cbind(lat=NAm2[(set!=f),c("lat")],pcaNAm2$x[set!=f, 1:(1+naxes)]))
+  reg <- lm(pcalat.train$lat~., pcalat.train)
+  predlat = predict(reg, pcalat.train)
+  
+  predictedCoord[set!=f] = cbind(predlong, predlat)
+  matrix = rdist.earth(cbind(predictedCoord[,1],predictedCoord[,2]),
+            cbind(NAm2[,c("long")], NAm2[,c("lat")]), miles=FALSE)
+  error = mean(diag(matrix))
+  errors = c(errors, error)
+}
+mean(errors)
+```
+
+
+The training error is naturally smaller than the test error, the model always fits the training data better. However, the difference is not big which means we don't have an overfitting problem, which is the whole reason why we use methods such as cross validation.
 
 
 
 
-
-
-
-
-
-
-
-
-
+## 6)
+ 
+TODO
 
 
 

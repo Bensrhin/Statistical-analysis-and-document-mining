@@ -515,10 +515,9 @@ map(&quot;world&quot;,add=T)</code></pre>
 ##  an extensive vignette, other supplements and source code</code></pre>
 <pre class="r"><code>matrix = rdist.earth(cbind(lmlong$fitted.values,lmlat$fitted.values),
             cbind(NAm2[,7], NAm2[,8]), miles=FALSE)
-error = mean(matrix)
+error = mean(diag(matrix))
 error</code></pre>
-<pre><code>## [1] 10388.77</code></pre>
-<pre class="r"><code>#mean(diag(matrix)) MAYBE?</code></pre>
+<pre><code>## [1] 10102.4</code></pre>
 </div>
 </div>
 <div id="section-2" class="section level2">
@@ -537,12 +536,84 @@ error</code></pre>
 </ul>
 <p>4 - Summarize the skill of the model using the sample of model evaluation scores</p>
 <pre class="r"><code>k = 10
-labels=c(rep(1:k,each=dim(NAm2)[1]/k), 1:dim(NAm2)[1]%%k)
+labels=rep(1:k,each=(dim(NAm2)[1]/k))
+labels=c(labels, 1:(dim(NAm2)[1]%%k)  )
 set=sample(labels,dim(NAm2)[1])</code></pre>
 </div>
 <div id="b-2" class="section level3">
 <h3>b)</h3>
+<pre class="r"><code>nindiv &lt;- dim(NAm2)[1]
+
+pcapredict &lt;- function(naxes){
+  predictedCoord &lt;- cbind(rep(0,nindiv),rep(0,nindiv))
+  #pcalong=data.frame(cbind(long=NAm2[,c(&quot;long&quot;)],pcaNAm2$x))
+  for (f in 1:k){
+    pcalong.test=data.frame(cbind(long=NAm2[(set==f),c(&quot;long&quot;)],pcaNAm2$x[set==f, 1:(1+naxes)]))
+    pcalong.train = data.frame(cbind(long=NAm2[(set!=f),c(&quot;long&quot;)],pcaNAm2$x[set!=f, 1:(1+naxes)]))
+    reg &lt;- lm(pcalong.train$long~., pcalong.train)
+    predlong = predict(reg, pcalong.test)
+    
+    pcalat.test=data.frame(cbind(lat=NAm2[(set==f),c(&quot;lat&quot;)],pcaNAm2$x[set==f, 1:(1+naxes)]))
+    pcalat.train = data.frame(cbind(lat=NAm2[(set!=f),c(&quot;lat&quot;)],pcaNAm2$x[set!=f, 1:(1+naxes)]))
+    reg &lt;- lm(pcalat.train$lat~., pcalat.train)
+    predlat = predict(reg, pcalat.test)
+    
+    predictedCoord[set==f] = cbind(predlong, predlat)
+  }
+  matrix = rdist.earth(cbind(predictedCoord[,1],predictedCoord[,2]),
+              cbind(NAm2[,c(&quot;long&quot;)], NAm2[,c(&quot;lat&quot;)]), miles=FALSE)
+  error = mean(diag(matrix))
+  return (error)
+}
+
+pcapredict(4)</code></pre>
+<pre><code>## [1] 1803.312</code></pre>
 </div>
+<div id="c-1" class="section level3">
+<h3>c)</h3>
+<pre class="r"><code>s = seq(2,440,by=10)
+p =  sapply(s, pcapredict)</code></pre>
+<pre class="r"><code>plot(s,p)</code></pre>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABUAAAAPACAMAAADDuCPrAAAAzFBMVEUAAAAAADoAAGYAOjoAOmYAOpAAZrY6AAA6OgA6Ojo6OmY6OpA6ZmY6ZpA6ZrY6kNtmAABmOgBmOjpmZjpmZmZmZpBmkJBmkLZmkNtmtttmtv+QOgCQOjqQZgCQZjqQZmaQkDqQkLaQtraQttuQtv+Q2/+2ZgC2Zjq2kDq2kGa2kJC2kLa2tpC2tra2ttu227a229u22/+2///bkDrbkGbbtmbbtpDbtrbb25Db27bb29vb2//b////tmb/25D/27b/29v//7b//9v///9G0DpMAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAgAElEQVR4nO3dbVsb15ag4cJxQnw6L3aaHnfiHs+cZELa3SFjhxNn7Bj7WPr//2lUyAgBktBeFNJeu+77Q4K5TJmN0EO9adFNAQjp9v0JAGQloABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKEFR3QDuAwQyf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" width="672" /></p>
+<pre class="r"><code>min(p)</code></pre>
+<pre><code>## [1] 1075.096</code></pre>
+</div>
+<div id="d-1" class="section level3">
+<h3>d)</h3>
+<p>We should keep the model that minimizes the prediction error, that would be the one with the first</p>
+<pre><code>## [1] 72</code></pre>
+<p>principal components.</p>
+<p>Its prediction error is</p>
+<pre><code>## [1] 1075.096</code></pre>
+<p>We choose to compute the training error by computing the mean of the errors in each training set. We can’t put everything in a matrix like the test data because we will have redunduncies.</p>
+<p>The training error is</p>
+<pre class="r"><code>naxes = nbmin
+errors = c()
+predictedCoord &lt;- cbind(rep(0,nindiv),rep(0,nindiv))
+for (f in 1:k){
+  pcalong.test=data.frame(cbind(long=NAm2[(set==f),c(&quot;long&quot;)],pcaNAm2$x[set==f, 1:(1+naxes)]))
+  pcalong.train = data.frame(cbind(long=NAm2[(set!=f),c(&quot;long&quot;)],pcaNAm2$x[set!=f, 1:(1+naxes)]))
+  reg &lt;- lm(pcalong.train$long~., pcalong.train)
+  predlong = predict(reg, pcalong.train)
+
+  pcalat.test=data.frame(cbind(lat=NAm2[(set==f),c(&quot;lat&quot;)],pcaNAm2$x[set==f, 1:(1+naxes)]))
+  pcalat.train = data.frame(cbind(lat=NAm2[(set!=f),c(&quot;lat&quot;)],pcaNAm2$x[set!=f, 1:(1+naxes)]))
+  reg &lt;- lm(pcalat.train$lat~., pcalat.train)
+  predlat = predict(reg, pcalat.train)
+  
+  predictedCoord[set!=f] = cbind(predlong, predlat)
+  matrix = rdist.earth(cbind(predictedCoord[,1],predictedCoord[,2]),
+            cbind(NAm2[,c(&quot;long&quot;)], NAm2[,c(&quot;lat&quot;)]), miles=FALSE)
+  error = mean(diag(matrix))
+  errors = c(errors, error)
+}
+mean(errors)</code></pre>
+<pre><code>## [1] 992.8524</code></pre>
+<p>The training error is naturally smaller than the test error, the model always fits the training data better. However, the difference is not big which means we don’t have an overfitting problem, which is the whole reason why we use methods such as cross validation.</p>
+</div>
+</div>
+<div id="section-3" class="section level2">
+<h2>6)</h2>
 </div>
 </div>
 

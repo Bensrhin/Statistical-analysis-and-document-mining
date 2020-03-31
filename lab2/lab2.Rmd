@@ -7,4 +7,211 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-lab2, here we go..
+# PCA Regression in Genetics 
+
+## 1 - 
+
+```{r}
+NAm2 = read.table("NAm2.txt", header=TRUE)
+```
+
+```{r}
+names=unique(NAm2$Pop)
+npop=length(names)
+coord=unique(NAm2[,c("Pop","long","lat")]) #coordinates for each pop
+colPalette=rep(c("black","red","cyan","orange","brown","blue","pink","purple","darkgreen"),3)
+pch=rep(c(16,15,25),each=9)
+plot(coord[,c("long","lat")],pch=pch,col=colPalette,asp=1)
+# asp allows to have the correct ratio between axis longitude and latitude
+# Thus the map is not deformed
+legend("bottomleft",legend=names,col=colPalette,lty=-1,pch=pch,cex=.75, ncol=2,lwd=2)
+library(maps);map("world",add=T)
+```
+
+
+This code simply plots the geographical positions of the countries found in the given dataset. The map of the world is also plotted behind so that we can see where the said countries are located.
+
+
+
+## 2 - Regression
+```{r}
+NAaux = NAm2[,c(8:20)]
+df = data.frame(NAaux)
+reg <- lm(df$long~., df)
+summary(reg)
+```
+
+
+If we try to do the regression using all 5709 the markers, we get NA on the values like standard deviation et p-value, which means the regression was not computed successfully.
+
+If we choose a subsample of only the first 20 markers to try and predict the longitude, we get mostly high p-values.
+
+We conclude that there is not enough data to perform a linear regression predictive model.
+
+
+
+
+## 3 - PCA
+
+### a)
+TO FILL IN LATER
+
+
+### b)
+
+```{r}
+NAaux = NAm2[,-c(1:8)]
+pcaNAm2 = prcomp(NAaux)
+```
+
+There is no need to scale the data, since the values are 0 and 1.
+
+
+
+### c)
+
+```{r}
+caxes=c(1,2)
+plot(pcaNAm2$x[,caxes],col="white")
+for (i in 1:npop) {
+#print(names[i])
+lines(pcaNAm2$x[which(NAm2[,3]==names[i]),caxes],type="p",col=colPalette[i],pch=pch[i])
+}
+legend("top",legend=names,col=colPalette,lty=-1,pch=pch,cex=.75,ncol=3,lwd=2)
+```
+
+The populations easily identified using the first two PCs are the ones shown to be isolated in the plot, in this case : Ache and Surui.
+
+```{r eval}
+caxes=c(5,6)
+plot(pcaNAm2$x[,caxes],col="white")
+for (i in 1:npop) {
+#print(names[i])
+lines(pcaNAm2$x[which(NAm2[,3]==names[i]),caxes],type="p",
+col=colPalette[i],pch=pch[i])
+}
+legend("top",legend=names,col=colPalette,lty=-1,pch=pch,cex=.75,ncol=3,lwd=2)
+```
+
+Using the 5th and 6th PCs, we can easily identifiy the Karitiana and Pima populations.
+
+
+### d)
+
+```{r}
+sm = summary(pcaNAm2)
+sm$importance[,1]
+sm$importance[,2]
+```
+
+The first two components capture 
+```{r echo=FALSE}
+sm$importance[3,2]
+```
+of the total variance.
+
+
+
+To conserve around 90% of the total inertia, we need the first 350 PCs.
+```{r echo=FALSE}
+sm$importance[,350]
+```
+
+
+
+## 4)
+
+### a)
+
+```{r}
+pcs <- pcaNAm2$x[,1:250]
+lmlong <- lm(NAm2$long~pcs)
+lmlat <- lm(NAm2$lat~pcs)
+```
+
+```{r}
+plot(lmlong$fitted.values,lmlat$fitted.values,col="white", asp = 1)
+for (i in 1:npop) {
+#print(names[i])
+lines(lmlong$fitted.values[which(NAm2[,3]==names[i])],
+lmlat$fitted.values[which(NAm2[,3]==names[i])],type="p",
+col=colPalette[i],pch=pch[i])
+}
+legend("bottomleft",legend=names,col=colPalette,lty=-1,pch=pch,
+cex=.75,ncol=3,lwd=2)
+map("world",add=T)
+```
+
+
+Compared to the map of question 1, we notice a similarity of the geographical positions with an additional noise, which is completely predictable since we're only using the first 250 Principal Components. 
+
+I'd say that it illustrate optimistically the ability to find geographical origin of
+individuals outside the database from its genetic markers.
+
+
+### b)
+```{r}
+library("fields")
+matrix = rdist.earth(cbind(lmlong$fitted.values,lmlat$fitted.values),
+            cbind(NAm2[,7], NAm2[,8]), miles=FALSE)
+error = mean(matrix)
+error
+#mean(diag(matrix)) MAYBE?
+```
+
+
+## 5)
+
+### a)
+
+Cross Validation is a technique used to determine the quality of the built model, the steps for a k fold cross validation are:
+
+1 - Shuffle the dataset randomly.
+
+2 - Split the dataset into k groups
+
+3 - For each unique group:
+
+   - Take the group as a hold out or test data set
+      
+   - Take the remaining groups as a training data set
+      
+   - Fit a model on the training set and evaluate it on the test set
+      
+   - Retain the evaluation score and discard the model
+      
+4 - Summarize the skill of the model using the sample of model evaluation scores
+
+
+
+```{r}
+k = 10
+labels=c(rep(1:k,each=dim(NAm2)[1]/k), 1:dim(NAm2)[1]%%k)
+set=sample(labels,dim(NAm2)[1])
+```
+
+
+
+### b)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -197,7 +197,7 @@ individuals outside the database from its genetic markers.
 
 
 ### b)
-```{r echo = FALSE}
+```{r warning=FALSE}
 library("fields")
 ```
 
@@ -205,9 +205,8 @@ library("fields")
 matrix = rdist.earth(cbind(lmlong$fitted.values,lmlat$fitted.values),
             cbind(NAm2$long, NAm2$lat), miles=FALSE)
 error = mean(diag(matrix))
-cat("The mean error of the previous model built is : ", error, " km2 \n")
+cat("The mean error of the previous model built is : ", error, " \n")
 ```
-**Comment : ** This error is very small compared to the surface of America.
 
 ## 5) PCR and cross-validation:
 

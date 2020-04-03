@@ -35,8 +35,10 @@ library(maps);map("world",add=T)
 ```
 
 
-This code simply plots the geographical positions of the countries found in the given dataset. The map of the world is also plotted behind so that we can see where the said countries are located.\\
+
+This code simply plots the geographical positions of the countries found in the given dataset. The map of the world is also plotted behind so that we can see where the said countries are located.
 ***NB:*** The map obtained is similar to the map given in the statement.
+
 
 
 
@@ -52,18 +54,18 @@ while (sink.number()>0) sink()
 ```
 
 **Results:**
-If we try to do the regression using all 5709 the markers, we get NA on the values like standard deviation et p-value, which means the regression was not computed successfully.\\
+If we try to do the regression using all 5709 the markers, we get NA on the values like standard deviation et p-value, which means the regression was not computed successfully.
 
-If we choose a subsample of only the first 20 markers to try and predict the longitude, we get mostly high p-values.\\
+If we choose a subsample of only the first 20 markers to try and predict the longitude, we get mostly high p-values.
 
-We conclude that there is not enough data to perform a linear regression predictive model.
+We conclude that there is not enough data to perform a multiple linear regression predictive model.
 
 
 ## 3 - PCA
 
 ### a) The principle of PCA:
 
-Principal component analysis (PCA) is a statistical procedure that uses an orthogonal transformation to convert a set of observations of possibly correlated variables into a set of values of linearly uncorrelated variables called principal components.\\
+Principal component analysis (PCA) is a statistical procedure that uses an orthogonal transformation to convert a set of observations of possibly correlated variables into a set of values of linearly uncorrelated variables called principal components.
 
 This transformation is defined in such a way that the first principal component has the largest possible variance (that is, accounts for as much of the variability in the data as possible), and each succeeding component in turn has the highest variance possible under the constraint that it is orthogonal to the preceding components. The resulting vectors (each being a linear combination of the variables and containing n observations) are an uncorrelated orthogonal basis set.
 
@@ -188,15 +190,18 @@ map("world",add=T)
 ```
 
 
-Compared to the map of question 1, we notice a similarity of the geographical positions with an additional noise, which is completely predictable since we're only using the first 250 Principal Components. 
+Compared to the map of question 1, we notice a similarity of the geographical positions with an additional important noise, which is completely predictable since we're only using the first 250 Principal Components. 
 
-I'd say that it illustrate optimistically the ability to find geographical origin of
+We would say that it illustrates optimistically the ability to find geographical origin of
 individuals outside the database from its genetic markers.
 
 
 ### b)
-```{r}
+```{r echo = FALSE}
 library("fields")
+```
+
+```{r}
 matrix = rdist.earth(cbind(lmlong$fitted.values,lmlat$fitted.values),
             cbind(NAm2$long, NAm2$lat), miles=FALSE)
 error = mean(diag(matrix))
@@ -285,7 +290,6 @@ We then draw the graph of prediction errors .
 
 ```{r}
 plot(s,p, col="red" ,xlab="nAxes", ylab="Predicted error")
-min(p)
 ```
 
 ### d)
@@ -305,14 +309,16 @@ min = min(p)
 cat("Its prediction error is", min)
 ```
 
-We choose to compute the training error by computing the mean of the errors in each training set. We can't put everything in a matrix like the test data because we will have redunduncies.
+
+Computing the training error is tricky, since the matrix predictedCoord is not big enough to fill with with 10 times the training set (redunduncies in the training sets). We choose to compute the matrix and its error for each fold, and then compute the mean of these errors.
 
 
 ```{r}
 naxes = nbmin
 errors = c()
-predictedCoord <- cbind(rep(0,nindiv),rep(0,nindiv))
 for (f in 1:k){
+  predictedCoord <- cbind(rep(0,nindiv),rep(0,nindiv)) #initialization for each fold
+  
   pcalong.test=data.frame(cbind(long=NAm2[(set==f),c("long")],pcaNAm2$x[set==f, 1:(1+naxes)]))
   pcalong.train = data.frame(cbind(long=NAm2[(set!=f),c("long")],pcaNAm2$x[set!=f, 1:(1+naxes)]))
   reg <- lm(pcalong.train$long~., pcalong.train)
@@ -339,13 +345,22 @@ The training error is naturally smaller than the test error, the model always fi
 
 
 ## 6) Conclusion
+ 
+This study demonstrates the usefulness of Principal Component Analysis in understanding the data and its predictive power.
 
-The objective of the TP is to find the best model that predicts the geographic origin of an individual using genetic markers.\\
-. Initially, We performed a regression of the longitude on the other genetic markers but this method is not good due to  the fact that\\
-  the number of variables is higher than the number of individuals  which prevents the estimation of our linear model.\\
-. This issue pushes us to think about reducing the number of variables using the PCA.\\
-. We propose to apply a $ 10-fold \quad cross-validation $ using PCA, which allows to find a number of axes minimizing the prediction error.\\
-  At the end of this method, the model obtained is the one where 52 main components are kept.
+The data given presentes an interesting feature, the number of individuals is much smaller than that of the predictors, which makes a multiple linear regression impossible to achieve.
+
+PCA gives us new variables (components) that are a linear combinations of the initial variables (genetic markers), theses variables are orthogonal and ranked by their corresponding variance (from the data).
+
+The first results were promising. Projecting the data one the first two components gives us the ability to distinguish certain populations from the rest. Obviously, it's not enough and the usage of further more components would prove to be more complete.
+
+A preliminary idea would be to use the first 350 principal components to conserve 90% of the total inertia and perform a linear regression on the PCs.
+However, performing regression on these PC's may cause an overfitting problem (too many). Therefore, it is necessary to perform the 10 fold cross validation method to determine the best number of principal components to use in the prediction, without relying too much on the data itself (changing the validation set 10 times).
+
+As expected, the optimal number of principal components (=72) is much less than 350, but it is the most accurate that we can achieve given the data, while escaping the trap of overfitting (hyperparametrization).
+
+Further improvements would be to use artificial neural nets, and experiment with different layers and optimizers, we would need of course to perform a 10-fold cross validation method on that model as well.
+
 
 
 

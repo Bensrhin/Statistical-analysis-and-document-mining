@@ -29,7 +29,7 @@ library(maps);map("world",add=T)
 ```
 
 
-This code simply plots the geographical positions of the countries found in the given dataset. The map of the world is also plotted behind so that we can see where the said countries are located.
+This code simply plots the geographical positions of the populations found in the given dataset. The map of the world is also plotted behind so that we can see where the populations are located.
 
 
 
@@ -46,7 +46,7 @@ If we try to do the regression using all 5709 the markers, we get NA on the valu
 
 If we choose a subsample of only the first 20 markers to try and predict the longitude, we get mostly high p-values.
 
-We conclude that there is not enough data to perform a linear regression predictive model.
+We conclude that there is not enough data to perform a multiple linear regression predictive model.
 
 
 
@@ -100,7 +100,7 @@ Using the 5th and 6th PCs, we can easily identifiy the Karitiana and Pima popula
 
 ### d)
 
-```{r}
+```{r echo=FALSE}
 sm = summary(pcaNAm2)
 sm$importance[,1]
 sm$importance[,2]
@@ -145,15 +145,18 @@ map("world",add=T)
 ```
 
 
-Compared to the map of question 1, we notice a similarity of the geographical positions with an additional noise, which is completely predictable since we're only using the first 250 Principal Components. 
+Compared to the map of question 1, we notice a similarity of the geographical positions with an additional important noise, which is completely predictable since we're only using the first 250 Principal Components. 
 
-I'd say that it illustrate optimistically the ability to find geographical origin of
+We would say that it illustrates optimistically the ability to find geographical origin of
 individuals outside the database from its genetic markers.
 
 
 ### b)
-```{r}
+```{r echo = FALSE}
 library("fields")
+```
+
+```{r}
 matrix = rdist.earth(cbind(lmlong$fitted.values,lmlat$fitted.values),
             cbind(NAm2[,7], NAm2[,8]), miles=FALSE)
 error = mean(diag(matrix))
@@ -238,7 +241,6 @@ p =  sapply(s, pcapredict)
 
 ```{r}
 plot(s,p)
-min(p)
 ```
 
 ### d)
@@ -260,13 +262,17 @@ min
 
 We choose to compute the training error by computing the mean of the errors in each training set. We can't put everything in a matrix like the test data because we will have redunduncies.
 
-The training error is
+
+Computing the training error is tricky, since the matrix predictedCoord is not big enough to fill with with 10 times the training set (redunduncies in the training sets). We choose to compute the matrix and its error for each fold, and then compute the mean of these errors.
+
+The training error is therefore :
 
 ```{r}
 naxes = nbmin
 errors = c()
-predictedCoord <- cbind(rep(0,nindiv),rep(0,nindiv))
 for (f in 1:k){
+  predictedCoord <- cbind(rep(0,nindiv),rep(0,nindiv)) #initialization for each fold
+  
   pcalong.test=data.frame(cbind(long=NAm2[(set==f),c("long")],pcaNAm2$x[set==f, 1:(1+naxes)]))
   pcalong.train = data.frame(cbind(long=NAm2[(set!=f),c("long")],pcaNAm2$x[set!=f, 1:(1+naxes)]))
   reg <- lm(pcalong.train$long~., pcalong.train)
@@ -294,7 +300,21 @@ The training error is naturally smaller than the test error, the model always fi
 
 ## 6)
  
-TODO
+This study demonstrates the usefulness of Principal Component Analysis in understanding the data and its predictive power.
+
+The data given presentes an interesting feature, the number of individuals is much smaller than that of the predictors, which makes a multiple linear regression impossible to achieve.
+
+PCA gives us new variables (components) that are a linear combinations of the initial variables (genetic markers), theses variables are orthogonal and ranked by their corresponding variance (from the data).
+
+The first results were promising. Projecting the data one the first two components gives us the ability to distinguish certain populations from the rest. Obviously, it's not enough and the usage of further more components would prove to be more complete.
+
+A preliminary idea would be to use the first 350 principal components to conserve 90% of the total inertia and perform a linear regression on the PCs.
+However, performing regression on these PC's may cause an overfitting problem (too many). Therefore, it is necessary to perform the 10 fold cross validation method to determine the best number of principal components to use in the prediction, without relying too much on the data itself (changing the validation set 10 times).
+
+As expected, the optimal number of principal components (=72) is much less than 350, but it is the most accurate that we can achieve given the data, while escaping the trap of overfitting (hyperparametrization).
+
+Further improvements would be to use artificial neural nets, and experiment with different layers and optimizers, we would need of course to perform a 10-fold cross validation method on that model as well.
+
 
 
 

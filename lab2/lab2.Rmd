@@ -1,6 +1,10 @@
 ---
-title: "lab2"
-output: html_document
+title: "SADM_Lab2"
+author: "El Ansary Otmane, Benchekroun Omar, Bensrhier Nabil"
+date: "23/03/2020"
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -9,9 +13,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # PCA Regression in Genetics 
 
-## 1 - 
+## 1 - DATA
 
-```{r}
+The data is described by a map which locates the position of each population by a specific color symbol. We obtain the map below:
+
+```{r echo=FALSE}
 NAm2 = read.table("NAm2.txt", header=TRUE)
 ```
 
@@ -29,45 +35,48 @@ library(maps);map("world",add=T)
 ```
 
 
-This code simply plots the geographical positions of the countries found in the given dataset. The map of the world is also plotted behind so that we can see where the said countries are located.
+This code simply plots the geographical positions of the countries found in the given dataset. The map of the world is also plotted behind so that we can see where the said countries are located.\\
+***NB:*** The map obtained is similar to the map given in the statement.
 
 
 
 ## 2 - Regression
-```{r}
+```{r echo=FALSE}
+sink("error.txt", type=c("output", "message"))
 NAaux = NAm2[,c(8:20)]
 df = data.frame(NAaux)
-reg <- lm(df$long~., df)
+reg <- lm(df$long~., df[, -1])
 summary(reg)
+# We should close all open sinks with
+while (sink.number()>0) sink()
 ```
 
+**Results:**
+If we try to do the regression using all 5709 the markers, we get NA on the values like standard deviation et p-value, which means the regression was not computed successfully.\\
 
-If we try to do the regression using all 5709 the markers, we get NA on the values like standard deviation et p-value, which means the regression was not computed successfully.
-
-If we choose a subsample of only the first 20 markers to try and predict the longitude, we get mostly high p-values.
+If we choose a subsample of only the first 20 markers to try and predict the longitude, we get mostly high p-values.\\
 
 We conclude that there is not enough data to perform a linear regression predictive model.
 
 
-
-
 ## 3 - PCA
 
-### a)
+### a) The principle of PCA:
 
-Principal component analysis (PCA) is a statistical procedure that uses an orthogonal transformation to convert a set of observations of possibly correlated variables into a set of values of linearly uncorrelated variables called principal components.
+Principal component analysis (PCA) is a statistical procedure that uses an orthogonal transformation to convert a set of observations of possibly correlated variables into a set of values of linearly uncorrelated variables called principal components.\\
 
 This transformation is defined in such a way that the first principal component has the largest possible variance (that is, accounts for as much of the variability in the data as possible), and each succeeding component in turn has the highest variance possible under the constraint that it is orthogonal to the preceding components. The resulting vectors (each being a linear combination of the variables and containing n observations) are an uncorrelated orthogonal basis set.
 
-### b)
+### b) 
 
 ```{r}
+# Only genetic data
 NAaux = NAm2[,-c(1:8)]
 pcaNAm2 = prcomp(NAaux)
 ```
 
 There is no need to scale the data, since the values are 0 and 1.
-
+That means that genetic markers are binary encoded. So they don't really have a weight.
 
 
 ### c)
@@ -82,7 +91,7 @@ lines(pcaNAm2$x[which(NAm2[,3]==names[i]),caxes],type="p",col=colPalette[i],pch=
 legend("top",legend=names,col=colPalette,lty=-1,pch=pch,cex=.75,ncol=3,lwd=2)
 ```
 
-The populations easily identified using the first two PCs are the ones shown to be isolated in the plot, in this case : Ache and Surui.
+The populations easily identified using the first two PCs are the ones shown to be isolated in the plot, in this case : ***Ache*** and ***Surui***. However, all the other populations are condensed to the point that they can no longer be identified
 
 ```{r eval}
 caxes=c(5,6)
@@ -97,31 +106,65 @@ legend("top",legend=names,col=colPalette,lty=-1,pch=pch,cex=.75,ncol=3,lwd=2)
 
 Using the 5th and 6th PCs, we can easily identifiy the Karitiana and Pima populations.
 
+*Remark :* We need more than two axes to be able to identify the entire population.
 
 ### d)
 
-```{r}
+```{r echo=FALSE}
 sm = summary(pcaNAm2)
 sm$importance[,1]
 sm$importance[,2]
 ```
-
-The first two components capture 
+- Percentage of variance captured by the first 2 principal components is given by:
+$$
+\frac{\lambda_1 +\lambda_2}{\sum_{k=1}^{n} \lambda_k}
+$$
+ 
 ```{r echo=FALSE}
-sm$importance[3,2]
-```
-of the total variance.
-
-
-
-To conserve around 90% of the total inertia, we need the first 350 PCs.
-```{r echo=FALSE}
-sm$importance[,350]
+cat("The first two components capture ", sm$importance[3,2] * 100, "%  of the total variance.")
 ```
 
 
+**The minimal number of principal components **\\
+- ***Method 1 :*** we calculate the cardinal of this set :
+$$
+\left\{\lambda , \lambda > \frac{1}{n}\sum_{k = 1}^{n} \lambda_k \right\} 
+$$
+```{r}
 
-## 4)
+# set of eigenvalues
+eigenvalues <- sm$importance[1, ] ^ 2
+# number of these values
+len = length(eigenvalues)
+# mean of eigenvalues
+mean <- mean(eigenvalues)
+cardinal <- 0
+
+for (i in 1:len)
+{
+  if (eigenvalues[i] > mean)
+  {
+    cardinal <- cardinal + 1
+  }
+  else
+  {
+    break()
+  }
+}
+cat("We need the first ", cardinal, "PC's")
+```
+- ***Method 2 :*** To conserve around 90% of the total inertia: 
+
+```{r echo=FALSE}
+count <- 1
+while (sm$importance[3,count] <= 0.9)
+{
+  count <- count + 1
+}
+cat("We need the first ", count, "PC's")
+```
+
+## 4) PCR (Principal Components Regression):
 
 ### a)
 
@@ -155,13 +198,13 @@ individuals outside the database from its genetic markers.
 ```{r}
 library("fields")
 matrix = rdist.earth(cbind(lmlong$fitted.values,lmlat$fitted.values),
-            cbind(NAm2[,7], NAm2[,8]), miles=FALSE)
+            cbind(NAm2$long, NAm2$lat), miles=FALSE)
 error = mean(diag(matrix))
-error
+cat("The mean error of the previous model built is : ", error, " km2 \n")
 ```
+**Comment : ** This error is very small compared to the surface of America.
 
-
-## 5)
+## 5) PCR and cross-validation:
 
 ### a)
 
@@ -188,30 +231,33 @@ Cross Validation is a technique used to determine the quality of the built model
 ```{r}
 k = 10
 labels=rep(1:k,each=(dim(NAm2)[1]/k))
-labels=c(labels, 1:(dim(NAm2)[1]%%k)  )
+labels=c(labels, 1:(dim(NAm2)[1]%%k))
 set=sample(labels,dim(NAm2)[1])
 ```
 
 
 
 ### b)
-
+  
 
 ```{r}
 nindiv <- dim(NAm2)[1]
 
 pcapredict <- function(naxes){
-  predictedCoord <- cbind(rep(0,nindiv),rep(0,nindiv))
-  #pcalong=data.frame(cbind(long=NAm2[,c("long")],pcaNAm2$x))
+  predictedCoord <- matrix(nrow = dim(df)[1], ncol = 2)
+  colnames(predictedCoord) = c("longitude", "latitude")
+  
   for (f in 1:k){
+    # long
     pcalong.test=data.frame(cbind(long=NAm2[(set==f),c("long")],pcaNAm2$x[set==f, 1:(1+naxes)]))
     pcalong.train = data.frame(cbind(long=NAm2[(set!=f),c("long")],pcaNAm2$x[set!=f, 1:(1+naxes)]))
-    reg <- lm(pcalong.train$long~., pcalong.train)
+    reg <- lm(pcalong.train$long~., pcalong.train) 
     predlong = predict(reg, pcalong.test)
     
+    #lat
     pcalat.test=data.frame(cbind(lat=NAm2[(set==f),c("lat")],pcaNAm2$x[set==f, 1:(1+naxes)]))
     pcalat.train = data.frame(cbind(lat=NAm2[(set!=f),c("lat")],pcaNAm2$x[set!=f, 1:(1+naxes)]))
-    reg <- lm(pcalat.train$lat~., pcalat.train)
+    reg <- lm(pcalat.train$lat~., pcalat.train) 
     predlat = predict(reg, pcalat.test)
     
     predictedCoord[set==f] = cbind(predlong, predlat)
@@ -222,45 +268,45 @@ pcapredict <- function(naxes){
   return (error)
 }
 
-pcapredict(4)
+cat("The prediction error is: ", pcapredict(4))
 ```
 
 
 ### c)
 
-```{r}
+```{r echo=FALSE, warning=FALSE,message=FALSE}
 s = seq(2,440,by=10)
 p =  sapply(s, pcapredict)
 ```
 
-
+We repeat the same steps.
+We then draw the graph of prediction errors .
 
 
 ```{r}
-plot(s,p)
+plot(s,p, col="red" ,xlab="nAxes", ylab="Predicted error")
 min(p)
 ```
 
 ### d)
 
-We should keep the model that minimizes the prediction error, that would be the one with the first
+We should keep the model that minimizes the prediction error: 
 
 ```{r echo=FALSE}
 nbmin = s[p==min(p)]
-nbmin
+cat("That would be the one with the first",nbmin, "principal components.")
 ```
 
-principal components.
 
-Its prediction error is
+
+
 ```{r echo=FALSE}
 min = min(p)
-min
+cat("Its prediction error is", min)
 ```
 
 We choose to compute the training error by computing the mean of the errors in each training set. We can't put everything in a matrix like the test data because we will have redunduncies.
 
-The training error is
 
 ```{r}
 naxes = nbmin
@@ -283,7 +329,7 @@ for (f in 1:k){
   error = mean(diag(matrix))
   errors = c(errors, error)
 }
-mean(errors)
+cat("The training error is", mean(errors))
 ```
 
 
@@ -292,9 +338,14 @@ The training error is naturally smaller than the test error, the model always fi
 
 
 
-## 6)
- 
-TODO
+## 6) Conclusion
+
+The objective of the TP is to find the best model that predicts the geographic origin of an individual using genetic markers.\\
+. Initially, We performed a regression of the longitude on the other genetic markers but this method is not good due to  the fact that\\
+  the number of variables is higher than the number of individuals  which prevents the estimation of our linear model.\\
+. This issue pushes us to think about reducing the number of variables using the PCA.\\
+. We propose to apply a $ 10-fold \quad cross-validation $ using PCA, which allows to find a number of axes minimizing the prediction error.\\
+  At the end of this method, the model obtained is the one where 52 main components are kept.
 
 
 

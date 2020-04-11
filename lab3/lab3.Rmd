@@ -1,0 +1,259 @@
+---
+title: "SADM_Lab3"
+author: "El Ansary Otmane, Benchekroun Omar, Bensrhier Nabil"
+date: "23/03/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+## Abstract
+
+Each team has to upload a report on Teide before April 30 at 20:00. All results should be commented and interpreted. Answer to the questions in order and refer to the question number in your report. Computations and graphics have to be performed with R. The report should be written using the Rmarkdown format. From your .rmd file, you are asked to generate an .html file and upload them both on Teide. In the .html file, you should limit the displayed R code to the most important instructions.
+
+
+
+
+
+
+In this tutorial, we consider a dataset Pima Indians Diabetes from the mlbench package. This data set contains descriptions of patients that are females at least 21 years old of Pima Indian heritage. The goal is to predict whether a patient has signs of diabetes. The data is supervised i.e. the labels are known.
+
+```{r}
+library(mlbench)
+data(PimaIndiansDiabetes2)
+set.seed(0)
+```
+
+
+## Question 1:
+
+1 - What type of features we have (numerical, categorical, rank)? How many missing values we have and which features contain them?
+
+
+- numerical : pregnant - glucose - pressure - triceps - insulin - mass - pedigree - age
+- categorical : diabetes
+- rank : age
+
+
+The following features have missing values : 
+```{r echo=FALSE}
+total = 0
+for (i in 1 : 9){
+  if (sum(is.na(PimaIndiansDiabetes2[,i])) > 0){
+    cat(names(PimaIndiansDiabetes2)[i])
+    cat(" : ")
+    cat(sum(is.na(PimaIndiansDiabetes2[,i])))
+    cat("\n")
+    total = total  + sum(is.na(PimaIndiansDiabetes2[,i]))
+  }
+}
+```
+
+With a total missing values of 
+```{r echo=FALSE}
+cat(total)
+```
+
+
+2 - How many positive and negative examples we have? Is the data set balanced?
+
+We have
+```{r echo=FALSE}
+sum(PimaIndiansDiabetes2$diabetes=='pos')
+```
+positive examples, and 
+```{r echo=FALSE}
+sum(PimaIndiansDiabetes2$diabetes=='neg')
+```
+negative examples.
+
+
+The dataset is not very balanced, since there are twice as many negative examples as the positive ones.
+
+
+
+## Question 2:
+
+Using the following code, import the file aux_functions.r and convert the labels into the integer format:
+```{r}
+source('aux_functions.r')
+x = PimaIndiansDiabetes2[,-9]
+y = PimaIndiansDiabetes2[,9]
+y = negative_positive_class_labels(y)
+```
+
+
+1 - Write a function that returns the accuracy score:
+```{r}
+accuracy_score <- function(y_true, y_pred){
+  if (length(y_true)==length(y_pred)){
+    return(sum(y_pred==y_true)/length(y_true))
+  }else{
+    stop("ERROR : vectors must be of equal length")  
+  }
+}
+```
+
+
+2 - What is the accuracy score of a dummy classifier that predicts the negative class only?
+
+```{r}
+y_pred = rep(-1, length(y))
+accuracy_score(y, y_pred)
+```
+
+
+
+
+
+## Question 3:
+
+In this question, we will study basic tricks to deal with missing values.
+
+1 - Firstly, replace the NAs by 0. Then, classify the data using the LDA from the MASS library in the leave-one-out fashion (see the documentation of lda) and report the performance.
+
+```{r}
+#replace NAs by 0
+x = PimaIndiansDiabetes2[,-9]
+x[is.na(x)] = rep(0, sum(is.na(x)))
+
+library(MASS)
+model <- lda(y~., data=x, CV=TRUE)
+accuracy_score(model$class, y)
+```
+
+
+2 - Now, for each feature, replace the NAs by its mean value. Report the performance.
+
+```{r}
+x = PimaIndiansDiabetes2[,-9]
+for (i in 1:8){
+  if (sum(is.na(x[,i]))>0){
+    f = x[,i]
+    m = mean(f[!is.na(f)])
+    f[is.na(f)] = rep(m, sum(is.na(f)))
+    x[,i] = f
+  }
+}
+
+model <- lda(y~., data=x, CV=TRUE)
+accuracy_score(model$class, y)
+```
+
+
+3 - Finally, remove observations where the missing values appear. Report the performance and make the conclusion which imputation works better on this data set. Try to explain why this could happen. Save the imputed data with the best performance for further questions.
+
+```{r}
+x = PimaIndiansDiabetes2[,-9]
+bool = NULL
+for (i in 1:dim(x)[1]){
+  bool = c(bool, sum(is.na(x[i,]))==0) 
+}
+
+model <- lda(y[bool]~., data=x[bool,], CV=TRUE)
+accuracy_score(model$class, y[bool])
+```
+
+
+We save the imputed data with the best performance :
+```{r}
+x = x[bool,]
+y = y[bool]
+```
+
+
+
+## Question 4:
+
+In this question, we compare various classification models by computing 10-fold cross-validation score.
+
+1 - Create a partition of the data set by 10 folds. Use the function createFolds from the library caret. Read the documentation to choose a convenient way to output folds.
+
+```{r}
+library(caret)
+folds = createFolds(y, 10)
+y_split = lapply(folds, function(ind, dat) dat[ind], dat = y)
+x_split <- lapply(folds, function(ind, dat) dat[ind,], dat = x)
+```
+
+
+2 - Perform the 10-fold cross-validation, where the following models are compared: LDA, kNN (k=1), kNN (k=5), kNN (k=10), perceptron (eta=0.1, num_iter=1000). Then, report mean and standard deviation across 10 folds for each method. Comment observed results. The function knn can be taken from the library class. The perceptron function is available at aux_functions.r with the corresponding predict.perceptron function.
+
+```{r}
+CV <- function(my_model){
+  accs = NULL
+  for (i in 1:10){
+    x_test = x_split[i][[1]]
+    y_test = y_split[i][[1]]
+    x_train = NULL
+    y_train = NULL
+    for (el in x_split[-i]){
+      x_train = rbind(x_train, el)
+    }
+    for (el in y_split[-i]){
+      y_train = c(y_train, el)
+    }
+    y_pred = my_model(x_train, y_train, x_test)
+    accs = c(accs, accuracy_score(y_pred, y_test))
+  }
+  return (accs)
+}
+
+model_lda <- function(x_train, y_train, x_test){
+   model <- lda(y_train~., data=x_train)
+   y_pred = predict(model, newdata=x_test)$class
+   return(y_pred)
+}
+
+model_knn1 <- function(x_train, y_train, x_test) {
+  return (knn(x_train, x_test, y_train, k=1, prob=TRUE))
+}
+model_knn5 <- function(x_train, y_train, x_test) {
+  return (knn(x_train, x_test, y_train, k=5, prob=TRUE))
+}
+model_knn10 <- function(x_train, y_train, x_test) {
+  return (knn(x_train, x_test, y_train, k=10, prob=TRUE))
+}
+
+model_perceptron <- function(x_train, y_train, x_test) {
+  per = perceptron(x_train, y_train)
+  return (predict.perceptron(per, x_test))
+}
+
+CV(model_perceptron)
+```
+
+
+
+3 - What statistical test we can use to verify whether the classifier with the highest accuracy is significantly better than the others on some level of significance?
+
+
+
+## Question 5:
+
+In this question, we will dive deeper to see whether classification results are adequate. For sake of simplicity, we will limit computations on one train/test by taking the 1st fold as the test test, whereas the rest folds for the train set.
+
+1 - Evaluate the confusion matrix for the classifier with the best accuracy score. Comment observed results and make a conclusion whether these results are appropriate for applications like diabet prediction.
+
+2 - Write a function that returns the sensitivity score a.k.a. the true positive rate. Would the sensitivity score be a more appropriate metric in our case?
+
+```{r}
+sensitivity_score <- function(y_true, y_pred){
+  
+}
+```
+
+3 - Compute the sensitivity score for each classification approach under consideration. Comment the observed results.
+
+
+
+## Bonus Question:
+
+Propose and implement one/several solutions to improve the performance of the perceptron.

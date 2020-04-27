@@ -187,6 +187,8 @@ x_split <- lapply(folds, function(ind, dat) dat[ind,], dat = x)
 2 - Perform the 10-fold cross-validation, where the following models are compared: LDA, kNN (k=1), kNN (k=5), kNN (k=10), perceptron (eta=0.1, num_iter=1000). Then, report mean and standard deviation across 10 folds for each method. Comment observed results. The function knn can be taken from the library class. The perceptron function is available at aux_functions.r with the corresponding predict.perceptron function.
 
 ```{r}
+library(class)
+
 CV <- function(my_model){
   accs = NULL
   for (i in 1:10){
@@ -227,7 +229,13 @@ model_perceptron <- function(x_train, y_train, x_test) {
   return (predict.perceptron(per, x_test))
 }
 
-CV(model_perceptron)
+models = c(model_lda, model_knn1, model_knn5, model_knn10, model_perceptron)
+res = sapply(models, function(x) return(CV(x)))
+
+noms = c("lda", "knn1", "knn5", "knn10", "perceptron")
+accs = sapply(1:5, function(x) return(mean(res[,x])))
+sds = sapply(1:5, function(x) return(sd(res[,x])))
+data.frame(noms, accs, sds)
 ```
 
 
@@ -235,24 +243,74 @@ CV(model_perceptron)
 3 - What statistical test we can use to verify whether the classifier with the highest accuracy is significantly better than the others on some level of significance?
 
 
+Since we have a small sample size (=10), a t-test is more appropriate (than a z-test for example).
+We are going to perform 4 t-tests, comparing the mean of the best model (lda) with the rest, the computed p-values are :
+
+```{r}
+pvalues <- sapply(2:5, function(i) return(t.test(res[,1], res[,i], alternative = "two.sided", var.equal = FALSE)$p.value))
+pvalues
+```
+
+The lowest p-value corresponds to lda VS perceptron, which is predictable since the difference of the mean of the accuracies is the biggest and the perceptron model has a very high standard deviation.
+We can conclude that lda is definitely better than perceptron, but the difference between the others (knn) has little statistical significance, especially knn for k=10.
+
+
 
 ## Question 5:
 
 In this question, we will dive deeper to see whether classification results are adequate. For sake of simplicity, we will limit computations on one train/test by taking the 1st fold as the test test, whereas the rest folds for the train set.
 
+```{r}
+x_test = x_split[1][[1]]
+y_test = y_split[1][[1]]
+x_train = NULL
+y_train = NULL
+for (el in x_split[-1]){
+  x_train = rbind(x_train, el)
+}
+for (el in y_split[-1]){
+  y_train = c(y_train, el)
+}
+```
+
 1 - Evaluate the confusion matrix for the classifier with the best accuracy score. Comment observed results and make a conclusion whether these results are appropriate for applications like diabet prediction.
+
+```{r}
+model <- lda(y_train~., data=x_train)
+y_pred = predict(model, newdata=x_test)$class
+table(predicted = y_pred, observed = y_test)
+```
+
+There are more false negatives than false positives, which is not appropriate for most medical applications, since telling a patient that he's not sick when he is, is more life threatning than a 'false alarm'. Same thing applies for the novel Covid19 tests for example.
+It is therefore necessary to distinguish between the two errors.
+
 
 2 - Write a function that returns the sensitivity score a.k.a. the true positive rate. Would the sensitivity score be a more appropriate metric in our case?
 
 ```{r}
 sensitivity_score <- function(y_true, y_pred){
-  
+  TP <- y_true[y_true == y_pred]
+  TP <- sum(TP[TP==1])
+  FN <- y_true[y_true != y_pred]
+  FN <- -sum(FN[FN==-1])
+  return (TP/(TP+FN))
 }
 ```
 
+Sensitivity refers to the test's ability to correctly detect ill patients who do have the condition, it is therefore a more appropriate metric in this case.
+
+
 3 - Compute the sensitivity score for each classification approach under consideration. Comment the observed results.
 
-
+```{r}
+predict_sen <- function(model){
+  y_pred =as.numeric(as.character( model(x_train, y_train, x_test)))
+  return (sensitivity_score(y_pred, y_test))
+}
+res = sapply(models, function(x) return(predict_sen(x))); 
+data.frame(models = noms, sensitivity=res)
+```
+LDA is still the best model, sensitivity wise. Surprisingly, knn performance descreases with k, which was not the case when we had the accuracy as a metric. The perceptron sensitivity varies too much in every execution, which means it's still statistically insignificant.
 
 ## Bonus Question:
 

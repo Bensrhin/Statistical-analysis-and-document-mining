@@ -209,23 +209,22 @@ cat("The accuracy of this model is :", acc_no_na)
 ```{r}
 # Visualization of results
 accuracy <- c(acc_0, acc_mean, acc_no_na)
-names <- c("NA with 0", "NA with mean", "lines without NA")
-ylim <- c(0, 1.5*max(accuracy))
-ax <- barplot(accuracy,beside=T,col=c("red", "red", "green"), names=names, ylim=ylim,
-              main = "Accuracy of the three models",
-              ylab="Accuracy")
-text(x=ax, y<-accuracy, label=accuracy, pos = 3, cex = 0.8, col = "blue")
+names <- c("NA -> 0", "NA -> mean", "removing NA")
+#ylim <- c(0, 1.5*max(accuracy))
+#ax <- barplot(accuracy,beside=T,col=c("red", "red", "green"), names=names, ylim=ylim,
+#              main = "Accuracy of the three models",
+#              ylab="Accuracy")
+#text(x=ax, y<-accuracy, label=accuracy, pos = 3, cex = 0.8, col = "blue")
+data.frame(names, accuracy)
 ```
 
 **Results: **
-It seems like the best model is the last one since it has the high accuracy. However, dropping the samples reduces the size of the dataset to approximaltely the half.
-So, it is not safe at all, that is why we need to keep these values rather than discard them. Then we will choose the first model as the best one since it has the best accuracy.
-
+The model with the best performance is the one where we delete NA's, the amount of data amputated is very considerable (~50%), so we may have to change this decision later on if needed.
 We save the imputed data with the best performance :
 
 ```{r}
-x <- x_best
-y <- y_best
+x <- x[bool,]
+y <- y[bool]
 ```
 
 
@@ -297,6 +296,8 @@ sds = sapply(1:5, function(x) return(sd(res[,x])))
 data.frame(noms, accs, sds)
 ```
 
+The model with the best accuracy is LDA, and is almost as performant as knn with k=10. The lowest performance reported is that of the perceptron, we can also notice that the value of the mean of the accuracies changes too much with every execution, which probably means its not appropriate for our case.
+
 
 
 ### 3) - What statistical test we can use to verify whether the classifier with the highest accuracy is significantly better than the others on some level of significance?
@@ -308,6 +309,7 @@ We are going to perform 4 t-tests, comparing the mean of the best model (lda) wi
 ```{r}
 pvalues <- sapply(2:5, function(i) return(t.test(res[,1], res[,i], alternative = "two.sided", var.equal = FALSE)$p.value))
 pvalues
+data.frame(noms[2:5],pvalues)
 ```
 
 The lowest p-value corresponds to lda VS perceptron, which is predictable since the difference of the mean of the accuracies is the biggest and the perceptron model has a very high standard deviation.
@@ -369,7 +371,18 @@ predict_sen <- function(model){
 res = sapply(models, function(x) return(predict_sen(x))); 
 data.frame(models = noms, sensitivity=res)
 ```
-LDA is still the best model, sensitivity wise. Surprisingly, knn performance descreases with k, which was not the case when we had the accuracy as a metric. The perceptron sensitivity varies too much in every execution, which means it's still statistically insignificant.
+
+The model with the best performance is
+```{r}
+res = res[1:4]
+noms[1:4][res==max(res)]
+```
+We ignored the value computed by the perceptron because it changes drastically in every execution (from 0 to 1).
+
+Surprisingly, knn performance descreases with k, which was not the case when we had the accuracy as a metric. 
+
+Overall, the computed sensitivity varies too much with every execution, which is due to the fact that we did not perform cross validation this time.
+
 
 ## Bonus Question:
 

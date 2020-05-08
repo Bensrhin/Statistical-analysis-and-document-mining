@@ -1,6 +1,10 @@
 ---
-title: "lab4"
-output: html_document
+title: "SADM_Lab4"
+author: "El Ansary Otmane, Benchekroun Omar, Bensrhier Nabil"
+date: "08/05/2020"
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -22,7 +26,7 @@ disadvantages of dense matrices (compared to sparse matrices TODO)
 
 # Question 2:
 
-## What is the vocabulary size? 
+### What is the vocabulary size? 
 
 (TODO)
 
@@ -37,27 +41,28 @@ names(word_count_train[,6:col])[(which(No.7 == max(No.7)))]
 ```
 ### Its frequency :
 ```{r echo=FALSE}
-cat("The frequency of the most frequent word is equal to :", max(No.7))
+cat("The frequency of the most frequent word is equal to :", max(No.7)/sum(No.7))
 ```
 ### the practical consequences :
 TODO
 
-## The appearance of aaaand :
+### The appearance of aaaand :
 ```{r}
 aaaand <- word_count_train[,6]
 sum(aaaand)
 ```
-*Comment:*
+
+**Comment:**
 aaaand occurs just one time, it provides no information that can be used for this classification. May be it can be seen as a **Stop Word**, that is why we should remove it from the text before training our model.
 
 # Question 3:
 
-## Laplace smoothing
+### Laplace smoothing
 When applying Multinomial Naive Bayes to this classification problem, the frequency based probability might introduce zeros when multiplying probabilities, this will lead to a failure in preserving the information contributed by non-zero probabilities.
 therefore, Laplace smoothing approach is adopted to counter this problem.
 
-## Train the multinomial naive Bayes on the training set in the word count representation. Set the Laplacian parameter to 1.
-```{r echo=FALSE}
+### Train the multinomial naive Bayes on the training set in the word count representation. Set the Laplacian parameter to 1.
+```{r echo=FALSE ,warning=FALSE,message=FALSE}
 #install.packages("naivebayes")
 #install.packages("caret")
 #install.packages("e1071")
@@ -70,9 +75,12 @@ y_train <- factor(word_count_train[, 1])
 x_test <- as.matrix(word_count_test[, -1])
 y_test <- factor(word_count_test[, 1])
 ### Train the Multinomial Naive Bayes
-mnb <- multinomial_naive_bayes(x = x, y = y, laplace = 1)
+mnb <- multinomial_naive_bayes(x = x_train, y = y_train, laplace = 1)
+```
+```{r echo=FALSE, warning=FALSE ,message=FALSE}
 summary(mnb)
 ```
+
 ```{r echo=FALSE}
 library(ggplot2)
 library(dplyr)
@@ -93,7 +101,8 @@ plot_cm<-function(cm){
     xlim(rev(levels(table$Reference)))
 }
 ```
-## Predict labels both for training and test observations.
+
+### Predict labels both for training and test observations.
 ```{r}
 # Classification :
 y_train_hat <- predict(mnb, newdata = x_train, type = "class")
@@ -102,16 +111,20 @@ y_test_hat <- predict(mnb, newdata = x_test, type = "class")
 cm1 <- caret::confusionMatrix(y_train_hat, y_train)
 cm2 <- caret::confusionMatrix(y_test_hat, y_test)
 ```
+
 ### Visualization of both training and test confusion matrices:
 ```{r}
 plot_cm(cm1)
 plot_cm(cm2)
 ```
+
 ### The misclassification rate:
 ```{r}
 cat("misclassification error on the training set is :  ", 1-sum(diag(cm1$table))/sum(cm1$table))
 cat("\nmisclassification error on the test set is     :  ", 1-sum(diag(cm2$table))/sum(cm2$table))
 ```
+
+
 **Comment: **
 This gives an intuition that the model has memorized the training data very well.
 Moreover, it is not guaranteed to work on unseen data since the error on the test set is higher than the error on the training set.
@@ -119,7 +132,7 @@ We can say that we notice an indication of overfitting.
 
 # Quesion 4:
 
-## How many positive and negative reviews are there in the training set? In the test set?
+#"# How many positive and negative reviews are there in the training set? In the test set?
 ```{r}
 # training set
 positive_train <- sum(tfidf_train$y)
@@ -141,7 +154,8 @@ legend("topright", c("Positve reviews", "Negative reviews"), fill = col)
 H<-apply((tf_mx), 2L, cumsum) - (tf_mx)/2
 text(rep(ax, each=nrow(H)), H, labels = (tf_mx))
 ```
-## Look at the tf-idf representation of the training set. What are the three most important words for negative reviews? 
+
+### Look at the tf-idf representation of the training set. What are the three most important words for negative reviews? 
 ```{r}
 # negative reviews
 d <- dim(tfidf_train)[2]

@@ -210,23 +210,24 @@ cat("The accuracy of this model is :", acc_no_na)
 # Visualization of results
 accuracy <- c(acc_0, acc_mean, acc_no_na)
 names <- c("NA -> 0", "NA -> mean", "removing NA")
-#ylim <- c(0, 1.5*max(accuracy))
-#ax <- barplot(accuracy,beside=T,col=c("red", "red", "green"), names=names, ylim=ylim,
-#              main = "Accuracy of the three models",
-#              ylab="Accuracy")
-#text(x=ax, y<-accuracy, label=accuracy, pos = 3, cex = 0.8, col = "blue")
+ylim <- c(0, 1.5*max(accuracy))
+ax <- barplot(accuracy,beside=T,col=c("red", "red", "green"), names=names, ylim=ylim,
+              main = "Accuracy of the three models",
+              ylab="Accuracy")
+    text(x=ax, y<-accuracy, label=accuracy, pos = 3, cex = 0.8, col = "blue")
 data.frame(names, accuracy)
 ```
 
 **Results: **
-The model with the best performance is the one where we delete NA's, the amount of data amputated is very considerable (~50%), so we may have to change this decision later on if needed.
+It seems like the best model is the last one since it has the high accuracy. However, dropping the samples reduces the size of the dataset to approximaltely the half.
+So, it is not safe at all, that is why we need to keep these values rather than discard them. Then we will choose the first model as the best one since it has the best accuracy.
+
 We save the imputed data with the best performance :
 
 ```{r}
-x <- x[bool,]
-y <- y[bool]
+x <- x_best
+y <- y_best
 ```
-
 
 ## Question 4:
 

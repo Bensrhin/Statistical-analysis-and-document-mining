@@ -144,14 +144,26 @@ text(rep(ax, each=nrow(H)), H, labels = (tf_mx))
 ## Look at the tf-idf representation of the training set. What are the three most important words for negative reviews? 
 ```{r}
 # negative reviews
-tf_train_neg <- tfidf_train[which(tfidf_train$y==0),]
+d <- dim(tfidf_train)[2]
+tf_train_neg <- tfidf_train[which(tfidf_train$y==0),6:d]
 # sum of each column
 neg_sum <- colSums(tf_train_neg)
 # sort the data
 n <- length(tf_train_neg)
 sorted_neg <- order(neg_sum)[(n-2):n]
-negativenames(tf_train_neg)[sorted_neg]
+names <- names(tf_train_neg)[sorted_neg]
 ```
+
+```{r echo=FALSE}
+y <- neg_sum[sorted_neg]
+col <- c("orange", "orange", "red")
+ylim <- c(0, 1.2*max(y))
+ax <- barplot(y,beside=T,col=col, names=names, ylim=ylim, space=c(2),
+              ylab=c("sum TF-IDF"), 
+                main = "The three most important words for negative reviews")
+text(x=ax, y<-y, label=y, pos = 3, cex = 0.8)
+```
+
 **Comment:** TODO
 
 

@@ -28,27 +28,40 @@ disadvantages of dense matrices (compared to sparse matrices TODO)
 
 ### What is the vocabulary size? 
 
-(TODO)
+```{r}
+# Number of variables minus the dependent variable
+size <- dim(word_count_train)[2] - 1
+```
 
-## For the review No.7 :
+```{r echo=FALSE}
+cat("The vocabulary size is equal to the number of words : ", size)
+```
+
+
+### For the review No.7 :
 
 ### The most frequent word is :
 
 ```{r}
 col <- dim(word_count_train)[2]
-No.7 <- t(word_count_train[7,6:col])
-names(word_count_train[,6:col])[(which(No.7 == max(No.7)))]
+No.7 <- t(word_count_train[7,-1])
+names(word_count_train[,-1])[(which(No.7 == max(No.7)))]
 ```
 ### Its frequency :
+```{r}
+freq <- max(No.7)/sum(No.7)
+```
+
 ```{r echo=FALSE}
-cat("The frequency of the most frequent word is equal to :", max(No.7)/sum(No.7))
+cat("The frequency of the most frequent word is equal to :", freq)
 ```
 ### the practical consequences :
-TODO
+
+**Result:** The review No.7 of the training set contains the word ***the*** as the most important one since it occurs $7$ times. The practical consequence is the fact that ***the*** is a ***Stop word***, which does not give an intuition about the positivity or the negativity of the review.
 
 ### The appearance of aaaand :
 ```{r}
-aaaand <- word_count_train[,6]
+aaaand <- word_count_train["aaaand"]
 sum(aaaand)
 ```
 
@@ -61,7 +74,7 @@ aaaand occurs just one time, it provides no information that can be used for thi
 When applying Multinomial Naive Bayes to this classification problem, the frequency based probability might introduce zeros when multiplying probabilities, this will lead to a failure in preserving the information contributed by non-zero probabilities.
 therefore, Laplace smoothing approach is adopted to counter this problem.
 
-### Train the multinomial naive Bayes on the training set in the word count representation. Set the Laplacian parameter to 1.
+Importing libraries:
 ```{r echo=FALSE ,warning=FALSE,message=FALSE}
 #install.packages("naivebayes")
 #install.packages("caret")
@@ -69,6 +82,7 @@ therefore, Laplace smoothing approach is adopted to counter this problem.
 library(naivebayes)
 ```
 
+### Training the multinomial naive Bayes on the training set in the word count representation. Set the Laplacian parameter to 1.
 ```{r}
 x_train <- as.matrix(word_count_train[, -1])
 y_train <- factor(word_count_train[, 1])
@@ -81,7 +95,7 @@ mnb <- multinomial_naive_bayes(x = x_train, y = y_train, laplace = 1)
 summary(mnb)
 ```
 
-```{r echo=FALSE}
+```{r echo=FALSE,warning=FALSE,message=FALSE}
 library(ggplot2)
 library(dplyr)
 
@@ -113,26 +127,34 @@ cm2 <- caret::confusionMatrix(y_test_hat, y_test)
 ```
 
 ### Visualization of both training and test confusion matrices:
-```{r}
+```{r echo=FALSE}
+cat("Training set")
 plot_cm(cm1)
+cat("Test set")
 plot_cm(cm2)
 ```
 
 ### The misclassification rate:
 ```{r}
-cat("misclassification error on the training set is :  ", 1-sum(diag(cm1$table))/sum(cm1$table))
-cat("\nmisclassification error on the test set is     :  ", 1-sum(diag(cm2$table))/sum(cm2$table))
+# misclassification error on the training set
+miss1 <- 1-sum(diag(cm1$table))/sum(cm1$table)
+# misclassification error on the test set
+miss2 <- 1-sum(diag(cm2$table))/sum(cm2$table)
+```
+
+```{r echo=FALSE}
+nb <- c(miss1, miss2)
+cat("misclassification error on the training set is :  ", miss1)
+cat("misclassification error on the test set is     :  ", miss2)
 ```
 
 
 **Comment: **
-This gives an intuition that the model has memorized the training data very well.
-Moreover, it is not guaranteed to work on unseen data since the error on the test set is higher than the error on the training set.
-We can say that we notice an indication of overfitting.
+In general, This classifier is effective, but gives an intuition that the model has memorized the training data very well, and it is not guaranteed to work on unseen data since the error on the test set is higher than the error on the training set. *(May be it is a sign of overfitting)*
 
 # Quesion 4:
 
-#"# How many positive and negative reviews are there in the training set? In the test set?
+### How many positive and negative reviews are there in the training set? In the test set?
 ```{r}
 # training set
 positive_train <- sum(tfidf_train$y)
@@ -158,8 +180,7 @@ text(rep(ax, each=nrow(H)), H, labels = (tf_mx))
 ### Look at the tf-idf representation of the training set. What are the three most important words for negative reviews? 
 ```{r}
 # negative reviews
-d <- dim(tfidf_train)[2]
-tf_train_neg <- tfidf_train[which(tfidf_train$y==0),6:d]
+tf_train_neg <- tfidf_train[which(tfidf_train$y==0),-1]
 # sum of each column
 neg_sum <- colSums(tf_train_neg)
 # sort the data
@@ -178,6 +199,79 @@ ax <- barplot(y,beside=T,col=col, names=names, ylim=ylim, space=c(2),
 text(x=ax, y<-y, label=y, pos = 3, cex = 0.8)
 ```
 
-**Comment:** TODO
+**Comment:** TODO (Movie is not a bad feedback even if it is the most important word for negative reviews ......)
+
+# Question 5:
+
+### Performing PCA:
+
+Since the data is not binary encoded, variables do really have a weight.
+So we need to scale the data:
+```{r}
+# pca on training part of dataset
+tf_train_pca <- prcomp(tfidf_train, center=TRUE, scale=TRUE)
+```
+
+Transform train and test observations usin obtained model:
+```{r}
+pred_train <- predict(tf_train_pca, newdata=tfidf_train)
+pred_test <- predict(tf_train_pca, newdata=tfidf_test)
+```
+
+Keeping the first 700 principal components:
+```{r}
+pred_train <- data.frame(pred_train[, 1:700])
+pred_test <- data.frame(pred_test[, 1:700])
+```
 
 
+### Performing LDA on the PCA-projected training set:
+
+```{r warning=FALSE,message=FALSE}
+library(MASS)
+lda_model <- lda(tfidf_train$y~., data=pred_train)
+```
+
+### Predict labels both for training and test observations.
+```{r}
+y_train_pred = predict(lda_model, newdata=pred_train)$class
+y_test_pred = predict(lda_model, newdata=pred_test)$class
+cm1 <- caret::confusionMatrix(y_train_pred, factor(tfidf_train$y))
+cm2 <- caret::confusionMatrix(y_test_pred, factor(tfidf_test$y))
+```
+
+### Visualization of both training and test confusion matrices:
+```{r echo=FALSE}
+cat("Training set")
+plot_cm(cm1)
+cat("Test set")
+plot_cm(cm2)
+```
+### The misclassification rate:
+```{r}
+# misclassification error on the training set
+miss1 <- 1-sum(diag(cm1$table))/sum(cm1$table)
+# misclassification error on the test set
+miss2 <- 1-sum(diag(cm2$table))/sum(cm2$table)
+```
+
+```{r echo=FALSE}
+lda <- c(miss1, miss2)
+cat("misclassification error on the training set is :  ", miss1)
+cat("misclassification error on the test set is     :  ", miss2)
+```
+
+# Conclusion:
+```{r echo=FALSE}
+y <- cbind(nb, lda)
+col <- c("darkblue","red")
+ylim <- c(0, 1.9*max(y))
+ax <- barplot(y,beside=T,col=col,ylim=ylim,names=c("multinomial Bayes classifier", "lda classifier"), legend = c("Test set", "Training set"),
+              ylab=c("misclassification error"), 
+                main = "The misclassification error of each classifier")
+text(x=ax, y<-y, label=y, pos = 3, cex = 0.8)
+```
+
+**Comment:**
+
+TODO (the fist classifier is the best)

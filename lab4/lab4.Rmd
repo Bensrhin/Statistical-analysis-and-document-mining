@@ -21,7 +21,9 @@ tfidf_test <- read.csv("datasets/tfidf_test.csv")
 ```
 
 # Question 1:
-disadvantages of dense matrices (compared to sparse matrices TODO)
+The data is a matrix for each document, the matrix is actually sparse but stored as if it was a dense matrix, which means that for most cases, we have a matrix filled with 0. This leads to unecessary memory usage.
+
+One other way to store this kind of large scale data is to only store the values that are non equal to 0, but we also have to store their position in the document. It is basically the idea behind The Compressed Sparse Row (CSR) Format, that has an extra variable that calculates the cumulative number of non zero entries, which makes it easier to access te data.
 
 
 # Question 2:
@@ -150,7 +152,7 @@ cat("misclassification error on the test set is     :  ", miss2)
 
 
 **Comment: **
-In general, This classifier is effective, but gives an intuition that the model has memorized the training data very well, and it is not guaranteed to work on unseen data since the error on the test set is higher than the error on the training set. *(May be it is a sign of overfitting)*
+In general, This classifier is effective, the fact that the misclassification error for the training set is significanly lower than for the test test means that we may have an overfitting problem. A more accurate missclassification error would be to calculate it using cross validation.
 
 # Quesion 4:
 
@@ -199,7 +201,8 @@ ax <- barplot(y,beside=T,col=col, names=names, ylim=ylim, space=c(2),
 text(x=ax, y<-y, label=y, pos = 3, cex = 0.8)
 ```
 
-**Comment:** TODO (Movie is not a bad feedback even if it is the most important word for negative reviews ......)
+**Comment:** The most used  word ("movie") in negative reviews is not necessarily an indicator of a negative review, simply because it's so common it appears on most movie reviews! 
+So an accurate way of finding the real predictors is to remove the common ones in positive and negative reviews. From the three words found earlier, the only real indicator of a bad review is the word "bad". Predictable!
 
 # Question 5:
 
@@ -258,6 +261,7 @@ miss2 <- 1-sum(diag(cm2$table))/sum(cm2$table)
 ```{r echo=FALSE}
 lda <- c(miss1, miss2)
 cat("misclassification error on the training set is :  ", miss1)
+cat("\n")
 cat("misclassification error on the test set is     :  ", miss2)
 ```
 
@@ -274,4 +278,7 @@ text(x=ax, y<-y, label=y, pos = 3, cex = 0.8)
 
 **Comment:**
 
-TODO (the fist classifier is the best)
+- Overall, the Bayes classifier has a slightly better misclassification error than the "LDA on PCA". 
+This does not mean that LDA is worse, since we only used the first 700 principal components, and therefore reduced the dimension for a slight decrease in performance.
+
+- With the lda classifier, we have similarly to the Bayes classifier an overfitting problem. Cross validation would give a more accurate result, and also would help us determine more realistically which method is better.
